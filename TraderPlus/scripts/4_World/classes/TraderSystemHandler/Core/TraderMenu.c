@@ -1362,6 +1362,7 @@ class TraderPlusMenu extends UIScriptedMenu
       {
         ResetStockList();
         StockCategoryHandler();
+        LicenceCheck(GetTraderPlusClient().m_StockCategories.Get(m_StockCategories.GetCurrentItem()))
         GetGame().GetCallQueue(CALL_CATEGORY_GUI).CallLater(PlayerCategoryHandler, 200);
         m_StockListPosition = -1;
         m_ProductInformation.Show(false);
@@ -1394,6 +1395,16 @@ class TraderPlusMenu extends UIScriptedMenu
       break;
     }
     return false;
+  }
+
+  void LicenceCheck(string categoryName)
+  {
+    if(GetBankAccount() && GetBankAccount().Licences){
+      if(categoryName.Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount().Licences.Find(categoryName) == -1)
+        m_InformationText.SetText("#tpm_licence_msg"+ "\n" +categoryName);
+        return;
+    }
+    m_InformationText.SetText("");
   }
 
   //hide player preview and show inventory panel
