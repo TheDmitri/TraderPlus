@@ -1,0 +1,735 @@
+PanelWidgetClass rootFrame {
+ position 0.00166 0
+ size 1 1080
+ halign center_ref
+ valign center_ref
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 1
+ style blank
+ {
+  PanelWidgetClass Background {
+   visible 1
+   ignorepointer 1
+   keepsafezone 1
+   color 0.702 0.702 0.702 1
+   position -0.001 -0.002
+   size 0.48785 552.50598
+   halign center_ref
+   valign center_ref
+   hexactpos 0
+   vexactpos 0
+   hexactsize 0
+   vexactsize 1
+   style rover_sim_black
+   {
+    ButtonWidgetClass PlayerAccountBttn {
+     position 0.04335 0.065
+     size 0.29421 67.6192
+     hexactpos 0
+     vexactpos 0
+     hexactsize 0
+     vexactsize 1
+     scaled 1
+     draggable 0
+     style Editor
+     text "PLAYER ACCOUNT"
+     text_proportion 0.5
+     "text color" 1 0.749 0 1
+    }
+    ButtonWidgetClass ClanAccountBttn {
+     visible 0
+     position 348.82498 36.024
+     size 0.29148 67.6192
+     hexactpos 1
+     vexactpos 1
+     hexactsize 0
+     vexactsize 1
+     style Editor
+     text "CLAN ACCOUNT"
+     text_proportion 0.5
+     "text color" 1 0.749 0 1
+    }
+    ButtonWidgetClass PtPTransfertBttn {
+     visible 0
+     position 657.50098 36.024
+     size 0.28601 67.6192
+     hexactpos 1
+     vexactpos 1
+     hexactsize 0
+     vexactsize 1
+     style Editor
+     text "PLAYER TRANSFER"
+     text_proportion 0.5
+     "text color" 1 0.749 0 1
+    }
+    PanelWidgetClass PlayerAccountPanel {
+     visible 1
+     ignorepointer 1
+     position 0.043 0.211
+     size 0.91324 397.22202
+     hexactpos 0
+     vexactpos 0
+     hexactsize 0
+     vexactsize 1
+     {
+      TextWidgetClass BankAmountText {
+       ignorepointer 1
+       color 1 0.749 0 1
+       position 0.003 0.115
+       size 0.31104 34.9959
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+       style Bold
+       text "BANK AMOUNT:"
+       "text halign" right
+       "text valign" center
+      }
+      TextWidgetClass BankAmountTextInput {
+       ignorepointer 1
+       position 0.335 0.108
+       size 0.56729 38.0897
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+       text "100000"
+      }
+      TextWidgetClass PlayerAmountText {
+       ignorepointer 1
+       color 1 0.749 0 1
+       position 0.002 0.214
+       size 0.31308 35.8512
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+       style Bold
+       text "PLAYER AMOUNT:"
+       "text halign" right
+       "text valign" center
+      }
+      ProgressBarWidgetClass MoneyProgressBar {
+       ignorepointer 1
+       color 1 0.749 0 1
+       position 0.083 0.829
+       size 0.82079 32.7574
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+       style Stamina
+       current 0
+      }
+      TextWidgetClass MaxText {
+       ignorepointer 1
+       color 1 0.749 0 1
+       position 0.621 0.755
+       size 0.28402 33.0969
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+       style Bold
+       text "MAX: 100 000"
+       "text color" 1 0.749 0 1
+       "text halign" right
+       "text valign" center
+      }
+      ButtonWidgetClass PlayerWithdrawBttn {
+       position 0.2 0.442
+       size 0.2294 39.4732
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+       style Editor
+       text "WITHDRAW"
+      }
+      ButtonWidgetClass PlayerDepositBttn {
+       visible 1
+       position 0.452 0.437
+       size 0.22834 39.3977
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+       style Editor
+       text "DEPOSIT"
+      }
+      TextWidgetClass PlayerFees {
+       ignorepointer 1
+       color 1 0.749 0 1
+       position 0.73599 0.00991
+       size 0.16764 38.1275
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+       text "Fees: 5%"
+       "text halign" right
+      }
+      EditBoxWidgetClass PlayerAmountTextInput {
+       position 0.336 0.319
+       size 0.56714 32.3298
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+      }
+      RichTextWidgetClass PlayerDebugText {
+       ignorepointer 1
+       color 1 0.749 0 1
+       position 0.01502 0.56856
+       size 0.97112 60.4759
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+       "text halign" center
+       "text valign" center
+       wrap 1
+       "condense whitespace" 1
+      }
+      TextWidgetClass TransactionAmountText {
+       ignorepointer 1
+       color 1 0.749 0 1
+       position 0.001 0.321
+       size 0.31308 28.1544
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+       style Bold
+       text "TRANSACTION AMOUNT:"
+       "text halign" right
+       "text valign" center
+      }
+      TextWidgetClass PlayerAmountTextOutput {
+       ignorepointer 1
+       position 0.336 0.215
+       size 0.56729 38.0897
+       hexactpos 0
+       vexactpos 0
+       hexactsize 0
+       vexactsize 1
+      }
+     }
+    }
+    CanvasWidgetClass ClanAccountPanel {
+     visible 0
+     ignorepointer 1
+     position 40.3483 116.812
+     size 0.91324 397.22205
+     hexactpos 1
+     vexactpos 1
+     hexactsize 0
+     vexactsize 1
+     {
+      PanelWidgetClass ClanMainSubPanel {
+       visible 0
+       ignorepointer 1
+       position 0.61915 3.17394
+       size 0.99662 396.55499
+       hexactpos 1
+       vexactpos 1
+       hexactsize 0
+       vexactsize 1
+       {
+        ButtonWidgetClass ClanDepositBttn {
+         position 385.79102 220.29399
+         size 0.22933 37.4861
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         style Editor
+         text "DEPOSIT"
+        }
+        ButtonWidgetClass ClanWithdrawBttn {
+         position 169.427 220.55901
+         size 0.22933 35.8135
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         style Editor
+         text "WITHDRAW"
+        }
+        ButtonWidgetClass ClanLogsBttn {
+         position 665.67596 357.68799
+         size 0.25964 38.3413
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         text "CLAN LOGS"
+         text_proportion 0.5
+         "text color" 1 0.749 0 1
+        }
+        TextWidgetClass ClanMaxText {
+         ignorepointer 1
+         color 1 0.749 0 1
+         position 580.401 284.34998
+         size 0.23233 30.2924
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         style Bold
+         text "MAX: 100 000"
+         "text color" 1 0.749 0 1
+        }
+        ProgressBarWidgetClass ClanMoneyProgressBar {
+         ignorepointer 1
+         color 1 0.749 0 1
+         position 51.512 315.39798
+         size 0.82079 30.8961
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         style Stamina
+         current 0
+        }
+        EditBoxWidgetClass ClanPlayerAmountTextInput {
+         ignorepointer 1
+         position 384.591 161.61501
+         size 0.44192 45.4218
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         text "10000"
+        }
+        TextWidgetClass ClanPlayerAmountText {
+         ignorepointer 1
+         color 1 0.749 0 1
+         position 44.8379 157.899
+         size 0.36673 56.074
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         style Bold
+         text "PLAYER AMOUNT:"
+        }
+        TextWidgetClass ClanBankAmountTextInput {
+         ignorepointer 1
+         position 384.50201 85.45891
+         size 0.44192 56.074
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         text "100000"
+         "text valign" center
+        }
+        TextWidgetClass ClanBankAmountText {
+         ignorepointer 1
+         color 1 0.749 0 1
+         position 80.2531 87.0687
+         size 0.32735 56.074
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         style Bold
+         text "BANK AMOUNT:"
+         "text halign" right
+        }
+        ButtonWidgetClass ClanEditBttn {
+         position -2.42731 357.75
+         size 0.25964 38.3413
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         text "CLAN SETTINGS"
+         text_proportion 0.5
+         "text color" 1 0.749 0 1
+        }
+        TextWidgetClass ClanFeesText {
+         ignorepointer 1
+         color 1 0.749 0 1
+         position 614.66095 36.6073
+         size 0.18379 39.8002
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         text "Fees: 5%"
+         "text color" 1 0.749 0 1
+         "text halign" right
+        }
+       }
+      }
+      PanelWidgetClass ClanCreateSubPanel {
+       visible 0
+       ignorepointer 1
+       position -0.80956 2.13712
+       size 899.68701 392.009
+       hexactpos 1
+       vexactpos 1
+       hexactsize 1
+       vexactsize 1
+       {
+        MultilineTextWidgetClass ClanTextInfo {
+         ignorepointer 1
+         position 92.3454 49.7467
+         size 0.75137 113.16399
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         text "YOU DON'T HAVE A CLAN ACCOUNT, JOIN ONE OR CREATE ONE"
+         "exact text" 1
+         "text halign" center
+         "text valign" center
+         wrap 1
+        }
+        ButtonWidgetClass CreateClanBttn {
+         position 141.80901 194.756
+         size 0.30582 73.76279
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         style Editor
+         text "CREATE CLAN"
+        }
+        ButtonWidgetClass JoinClanBttn {
+         position 434.293 194.757
+         size 0.30414 73.76279
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         style Editor
+         text "JOIN CLAN"
+        }
+        TextWidgetClass PriceCreafeClanText {
+         ignorepointer 1
+         position 75.4273 309.138
+         size 0.81984 48
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         text "PRICE FOR CREATION: 250000"
+         "text halign" center
+         "text valign" center
+        }
+       }
+      }
+      PanelWidgetClass ClanEditSubPanel {
+       visible 0
+       ignorepointer 1
+       position 0.21102 1.19351
+       size 897.776 395.763
+       hexactpos 1
+       vexactpos 1
+       hexactsize 1
+       vexactsize 1
+       {
+        TextListboxWidgetClass ClanPlayerList {
+         position 634.34094 18.0543
+         size 251.32901 356.49899
+         hexactpos 1
+         vexactpos 1
+         hexactsize 1
+         vexactsize 1
+         "title visible" 1
+         colums "PLAYERLIST"
+         lines 10
+         "highlight row" 1
+        }
+        TextListboxWidgetClass ClanMemberList {
+         position 367.91 20.8588
+         size 251.32901 356.49899
+         hexactpos 1
+         vexactpos 1
+         hexactsize 1
+         vexactsize 1
+         "title visible" 1
+         colums "CLAN'S MEMBER "
+         lines 10
+        }
+        PanelWidgetClass ClanPermPanel {
+         visible 0
+         ignorepointer 1
+         position 46.391 23.8236
+         size 0.18946 144.48
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         {
+          CheckBoxWidgetClass CBCanWithdraw {
+           position 5.6116 38.2691
+           size 0.12775 20.3256
+           hexactpos 1
+           vexactpos 1
+           hexactsize 0
+           vexactsize 1
+          }
+          CheckBoxWidgetClass CBCanInvite {
+           position 5.68706 93.73669
+           size 0.13338 19.332
+           hexactpos 1
+           vexactpos 1
+           hexactsize 0
+           vexactsize 1
+          }
+          CheckBoxWidgetClass CBCanKick {
+           position 5.37894 66.7172
+           size 0.12764 19.854
+           hexactpos 1
+           vexactpos 1
+           hexactsize 0
+           vexactsize 1
+          }
+          CheckBoxWidgetClass CBCanEdit {
+           position 5.80652 121.14
+           size 0.1337 20.3256
+           hexactpos 1
+           vexactpos 1
+           hexactsize 0
+           vexactsize 1
+          }
+          TextWidgetClass CanInvite {
+           ignorepointer 1
+           position 34.2786 65.5145
+           size 0.78103 19.6151
+           hexactpos 1
+           vexactpos 1
+           hexactsize 0
+           vexactsize 1
+           text "CAN INVITE"
+          }
+          CheckBoxWidgetClass CBCanDeposit {
+           position 5.49843 10.3176
+           size 0.13378 20.3256
+           hexactpos 1
+           vexactpos 1
+           hexactsize 0
+           vexactsize 1
+          }
+          TextWidgetClass CanWithdraw {
+           ignorepointer 1
+           position 33.895 38.0225
+           size 0.78114 20.8035
+           hexactpos 1
+           vexactpos 1
+           hexactsize 0
+           vexactsize 1
+           text "CAN WITHDRAW"
+          }
+          TextWidgetClass CanEdit {
+           ignorepointer 1
+           position 34.266 121.298
+           size 0.77673 18.5272
+           hexactpos 1
+           vexactpos 1
+           hexactsize 0
+           vexactsize 1
+           text "CAN EDIT"
+          }
+          TextWidgetClass CanKick {
+           ignorepointer 1
+           position 34.7754 94.19429
+           size 0.77401 18.6655
+           hexactpos 1
+           vexactpos 1
+           hexactsize 0
+           vexactsize 1
+           text "CAN KICK"
+          }
+          TextWidgetClass CanDeposit {
+           ignorepointer 1
+           position 35.2281 11.329
+           size 0.77519 19.615
+           hexactpos 1
+           vexactpos 1
+           hexactsize 0
+           vexactsize 1
+           text "CAN DEPOSIT"
+          }
+          ButtonWidgetClass KickBttn {
+           position 561.23004 296.603
+           size 0.07791 35.455
+           hexactpos 1
+           vexactpos 1
+           hexactsize 0
+           vexactsize 1
+           style Editor
+           text "KICK"
+          }
+         }
+        }
+        ButtonWidgetClass InviteBttn {
+         position 208.705 336.74603
+         size 0.13466 37.1277
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         style Editor
+         text "INVITE"
+        }
+        ButtonWidgetClass KickBttn0 {
+         position 47.7539 336.41299
+         size 0.13215 38.4985
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         style Editor
+         text "KICK"
+        }
+       }
+      }
+      CanvasWidgetClass ClanLogsSubPanel {
+       visible 0
+       ignorepointer 1
+       position 40.3483 115.52299
+       size 0.91324 397.22202
+       hexactpos 1
+       vexactpos 1
+       hexactsize 0
+       vexactsize 1
+       {
+        TextListboxWidgetClass ClanLogsList {
+         position 21.5483 69.4504
+         size 0.95181 306.50201
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         lines 10
+        }
+        TextWidgetClass ClanLogsTitle {
+         ignorepointer 1
+         color 1 0.749 0 1
+         position 308.181 12.2178
+         size 0.31769 44.3591
+         hexactpos 1
+         vexactpos 1
+         hexactsize 0
+         vexactsize 1
+         style Bold
+         text "CLAN LOGS"
+         "text halign" center
+         "text valign" center
+        }
+       }
+      }
+     }
+    }
+    PanelWidgetClass TransfertPanel {
+     visible 0
+     ignorepointer 1
+     position 38.0154 122.73
+     size 0.91324 397.22202
+     hexactpos 1
+     vexactpos 1
+     hexactsize 0
+     vexactsize 1
+     {
+      TextWidgetClass TransferBankAmountText {
+       ignorepointer 1
+       color 1 0.749 0 1
+       position 78.5926 95.7784
+       size 0.30286 46.6228
+       hexactpos 1
+       vexactpos 1
+       hexactsize 0
+       vexactsize 1
+       style Bold
+       text "BANK AMOUNT:"
+       text_proportion 0.8
+       "text halign" right
+       "text valign" center
+      }
+      TextWidgetClass TransferAmountText {
+       ignorepointer 1
+       position 354.92798 95.69559
+       size 0.24723 46.5159
+       hexactpos 1
+       vexactpos 1
+       hexactsize 0
+       vexactsize 1
+       text "100000"
+       "text valign" center
+      }
+      TextWidgetClass TransfertAmountText {
+       ignorepointer 1
+       color 1 0.749 0 1
+       position 35.76431 145.813
+       size 0.35057 47.8806
+       hexactpos 1
+       vexactpos 1
+       hexactsize 0
+       vexactsize 1
+       style Bold
+       text "TRANSFER AMOUNT:"
+       "exact text" 0
+       text_proportion 0.8
+       "text halign" right
+       "text valign" center
+      }
+      ButtonWidgetClass TransfertBttn {
+       position 199.91199 211.694
+       size 0.27508 51.71
+       hexactpos 1
+       vexactpos 1
+       hexactsize 0
+       vexactsize 1
+       style Editor
+       text "TRANSFER"
+      }
+      EditBoxWidgetClass TransferAmountTextInput {
+       ignorepointer 1
+       position 354.92294 146.16
+       size 0.24742 47.9747
+       hexactpos 1
+       vexactpos 1
+       hexactsize 0
+       vexactsize 1
+       text "100000"
+      }
+      TextListboxWidgetClass PlayerList {
+       color 0.8745 0.6824 0.1098 1
+       position 580.17499 7.66392
+       size 0.3439 378.42599
+       hexactpos 1
+       vexactpos 1
+       hexactsize 0
+       vexactsize 1
+       style Default
+       "title visible" 1
+       colums "PLAYERS LIST"
+       lines 10
+       "highlight row" 1
+      }
+      TextWidgetClass TransfertFees {
+       ignorepointer 1
+       color 1 0.749 0 1
+       position 446.76001 47.1696
+       size 0.14645 38.1275
+       hexactpos 1
+       vexactpos 1
+       hexactsize 0
+       vexactsize 1
+       text "Fees: 5%"
+       "text halign" right
+      }
+     }
+    }
+   }
+  }
+ }
+}
