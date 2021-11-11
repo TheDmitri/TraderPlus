@@ -1362,7 +1362,10 @@ class TraderPlusMenu extends UIScriptedMenu
       {
         ResetStockList();
         StockCategoryHandler();
+<<<<<<< HEAD
         LicenceCheck(GetTraderPlusClient().m_StockCategories.Get(m_StockCategories.GetCurrentItem()))
+=======
+>>>>>>> af110d2551dadb184991aa5a17ae9a08bf71cdfa
         GetGame().GetCallQueue(CALL_CATEGORY_GUI).CallLater(PlayerCategoryHandler, 200);
         m_StockListPosition = -1;
         m_ProductInformation.Show(false);
@@ -1397,6 +1400,7 @@ class TraderPlusMenu extends UIScriptedMenu
     return false;
   }
 
+<<<<<<< HEAD
   void LicenceCheck(string categoryName)
   {
     if(GetBankAccount() && GetBankAccount().Licences){
@@ -1407,6 +1411,8 @@ class TraderPlusMenu extends UIScriptedMenu
     m_InformationText.SetText("");
   }
 
+=======
+>>>>>>> af110d2551dadb184991aa5a17ae9a08bf71cdfa
   //hide player preview and show inventory panel
   void BackToInventoryHandler()
   {

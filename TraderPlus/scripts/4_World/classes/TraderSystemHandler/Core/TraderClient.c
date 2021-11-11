@@ -352,8 +352,15 @@ class TraderPlusClient
 
 		if(GetBankAccount() && GetBankAccount().Licences)
 		{
+<<<<<<< HEAD
 			if(categoryname.Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount().Licences.Find(categoryname) == -1)
 				return;
+=======
+			if(categoryname.Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount().Licences.Find(categoryname) != -1)
+				{
+					return;
+				}
+>>>>>>> af110d2551dadb184991aa5a17ae9a08bf71cdfa
 		}
 
 		for(int i=0; i<m_TraderCategories.Count();i++)
@@ -398,7 +405,11 @@ class TraderPlusClient
 				if(m_TraderCategories.Get(i).CategoryName == categories[k])
 				{
 					if(GetBankAccount() && GetBankAccount().Licences){
+<<<<<<< HEAD
 						if(categories[k].Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount().Licences.Find(categories[k]) == -1)
+=======
+						if(categories[k].Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount().Licences.Find(categories[k]) != -1)
+>>>>>>> af110d2551dadb184991aa5a17ae9a08bf71cdfa
 							continue;
 					}
 
