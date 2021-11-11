@@ -1,0 +1,12 @@
+In that mod_Garage, you'll be able to:
+
+=>Create a json config on server side, load it and use the config anywhere in 4_World & 5_Mission
+=>Create a instance available on client & server to do whatever you have in mind : trader mod, quest mod, rad mod, toxic mod, case spawner mod, etc...
+=>Have RPC working for server to client & client to server
+=>Have a define value to allow others modder to override or add custom modification outside your mod
+=>Have your own log file to fix and check your code at any moment
+
+
+This Garage has been made by thedmitri.
+
+TheDmitri

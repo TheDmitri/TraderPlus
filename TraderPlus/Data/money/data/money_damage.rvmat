@@ -1,0 +1,13 @@
+ambient[]={0.96890157,0.96890157,0.96890157,1};
+diffuse[]={0.96890157,0.96890157,0.96890157,1};
+forcedDiffuse[]={0,0,0,0};
+emmisive[]={0,0,0,1};
+specular[]={0.053602822,0.053557932,-0.033465832,0.039999999};
+specularPower=0;
+PixelShaderID="Super";
+VertexShaderID="Super";
+class Stage8
+{
+	texture="dz\characters\data\generic_damage_mc.paa";
+	uvSource="none";
+};
