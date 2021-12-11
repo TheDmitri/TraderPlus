@@ -92,22 +92,22 @@ class SZSafeZoneServer
 				float distance_squared = Math.Pow(GetSZConfig().SafeAreaLocation[i].X-pos[0], 2) + Math.Pow(GetSZConfig().SafeAreaLocation[i].Y-pos[2], 2);
 				if( distance_squared <= Math.Pow(GetSZConfig().SafeAreaLocation[i].Radius, 2) )
 				{
-		      if(!player.IsInsideSZ.SZStatut)
+		      if(!player.GetSafeZoneStatus() == SZ_IN_SAFEZONE)
 					{
-						player.IsInsideSZ.SZStatut = true;
-						player.IsInsideSZ.SZName = GetSZConfig().SafeAreaLocation[i].SafeZoneStatut;
+						player.SetSafeZoneStatus(true);
+						player.SetSafeZoneName(GetSZConfig().SafeAreaLocation[i].SafeZoneStatut);
 						player.GetInputController().OverrideRaise(true, false);
 					}
 				}
 				else if ( distance_squared > Math.Pow(GetSZConfig().SafeAreaLocation[i].Radius, 2) )
 				{
-					if(player.IsInsideSZ.SZStatut)
+					if(player.GetSafeZoneStatus() == SZ_IN_SAFEZONE)
 					{
-						player.IsInsideSZ.SZStatut = false;
-						player.IsInsideSZ.SZName = "";
+						player.SetSafeZoneStatus(false);
+						player.SetSafeZoneName("");
 						player.GetInputController().OverrideRaise(false, false);
 					}
-				} 
+				}
 			}
 		}
 
@@ -122,14 +122,10 @@ class SZSafeZoneServer
     		 return;
        PlayerBase player = GetPlayerByIdentity(sender);
 			 if(!player)return;
-			 string prevName = player.IsInsideSZ.SZName;
-    	 player.IsInsideSZ.SZName = data.param1;
-       player.IsInsideSZ.SZStatut = data.param2;
-			 /*if(data.param1 == "")
-			 {
-				 GetTraderPlusLogger().LogInfo("GetSafeStatut | Playername:"+sender.GetName()+" TradZoneName:"+prevName+" Statut:"+data.param2.ToString());
-			 }else GetTraderPlusLogger().LogInfo("GetSafeStatut | Playername:"+sender.GetName()+" TradZoneName:"+data.param1+" Statut:"+data.param2.ToString());*/
-       if(player.IsInsideSZ.SZStatut == true)
+			 string prevName = player.GetSafeZoneName();
+       player.SetSafeZoneName(data.param1);
+			 player.SetSafeZoneStatus(data.param2);
+		   if(player.GetSafeZoneStatus() == SZ_IN_SAFEZONE == true)
        {
          player.GetInputController().OverrideRaise(true, false);
          player.SetAllowDamage(false);
@@ -154,6 +150,18 @@ class SZSafeZoneServer
        GetTraderPlusLogger().LogInfo("GetSafeStatut");
        #endif
 	  }
+
+		void GetSafeStatut(CallType type, ParamsReadContext ctx, PlayerIdentity sender, Object target)
+		{
+			if (!GetGame().IsServer())
+				 	return;
+
+
+			PlayerBase player = GetPlayerByIdentity(sender);
+				if(!player)return;
+
+			GetTraderPlusLogger().LogInfo("| /!\ PLAYER FLAG FOR HIGH SPEED /!\ | PLAYERNAME:"+sender.GetName()+ " STEAM ID:"+sender.GetPlainId());
+		}
 
     PlayerBase GetPlayerByIdentity(PlayerIdentity sender)
   	{

@@ -33,7 +33,7 @@ class  ActionCarLock: ActionContinuousBase
             return true;
 
         CarScript ntarget = CarScript.Cast( target.GetObject() );
-        if (ntarget && ntarget.m_CarLockPassword != -1 && !ntarget.m_CarLock_IsLocked && ntarget.m_CarLockOwner !=-1 && (ntarget.m_CarLockOwner == player.CLSteamlowID || player.IsSZAdmin || player.HasPassword(ntarget.m_CarLockPassword,ntarget.m_CarLockOwner)))
+        if (ntarget && ntarget.m_CarLockPassword != -1 && !ntarget.m_CarLock_IsLocked && ntarget.m_CarLockOwner !=-1 && (ntarget.m_CarLockOwner == player.CLSteamlowID || player.GetAdminStatus() == SZ_IS_ADMIN || player.HasPassword(ntarget.m_CarLockPassword,ntarget.m_CarLockOwner)))
 				{
 					  return true;
 				}

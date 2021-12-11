@@ -5,6 +5,7 @@ const string TRADERPLUS_CONFIG_DIR_SERVER = TRADERPLUS_CONFIG_ROOT_SERVER + "Tra
 const string TRADERPLUS_DB_DIR_SERVER = TRADERPLUS_CONFIG_ROOT_SERVER + "TraderPlusDatabase\\";
 const string TRADERPLUS_CONFIG = TRADERPLUS_CONFIG_DIR_SERVER + "TraderPlusGeneralConfig.json";
 const string TRADERPLUS_PRICE_CONFIG = TRADERPLUS_CONFIG_DIR_SERVER + "TraderPlusPriceConfig.json";
+const string TRADERPLUS_PRICE_CONFIG_NEW = TRADERPLUS_CONFIG_DIR_SERVER + "TraderPlusPriceConfigNew.json";
 const string TRADERPLUS_ID_CONFIG = TRADERPLUS_CONFIG_DIR_SERVER + "TraderPlusIDsConfig.json";
 const string TRADERPLUS_STOCK_CONFIG = TRADERPLUS_DB_DIR_SERVER + "TraderPlusStock_ID";
 const string TRADERPLUS_VEHICULE_CONFIG =TRADERPLUS_CONFIG_DIR_SERVER + "TraderPlusVehiclesConfig.json";
@@ -16,6 +17,9 @@ const float TRADERPLUS_TRANSACTION_INTERVAL = 1;
 const int  TRADEMODE_SELL = 1;
 const int  TRADEMODE_SELLVEHICLE = 2;
 const int  TRADEMODE_BUY  = 0;
+const int  TRADEMODE_UNLIMITED = -1;
+const int  TRADEMODE_NO_TRADE = -1;
+const int  TRADEMODE_NOT_IN_STOCK = -1;
 
 enum TraderPlusResponse
 {
@@ -24,4 +28,12 @@ enum TraderPlusResponse
   BUY_SUCCESS,
   BUY_FAILED,
   NO_TRADE
-}
+};
+
+enum TraderPlusInventoryCategory
+{
+  SELLABLE=1,
+  ALL,
+  LICENCES,
+  VEHICLES
+};

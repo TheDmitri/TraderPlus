@@ -36,7 +36,6 @@ class ReceiptBase extends ItemBase
 					TraderPlusHelper.CreateVehicle(player_base,TraderPlusHelper.GetVehicleClassNameBasedOnID(CarID),pposition,oorientation);
 
 					pb.DropItem(this);
-					GetTraderPlusLogger().LogInfo("I'm not here");
 					this.Delete();
 			}
 			SetIsDeploySound( true );
@@ -61,7 +60,7 @@ class ReceiptBase extends ItemBase
 							CarAttachments = data.param2;
 					}
 					return true;
-			}
+		}
 };
 
 class Receipt extends ReceiptBase

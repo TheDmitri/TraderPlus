@@ -101,10 +101,10 @@ class TraderPlusBankingCore
 				player.m_TraderPlusBankingMenu.UIHandle();
 			}
 
-			if(player && player.m_TraderPlusMenu)
+			/*if(player && player.m_TraderPlusMenu)
 			{
 				player.m_TraderPlusMenu.UIHandle();
-			}
+			}*/
 
 			if(player && player.m_GarageMenu)
 			{

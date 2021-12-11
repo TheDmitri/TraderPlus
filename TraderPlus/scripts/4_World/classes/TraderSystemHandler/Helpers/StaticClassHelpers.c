@@ -22,7 +22,7 @@ static ref TraderPlusVehiclesSettings GetTraderPlusVehiculeConfig()	{
 	return GetTraderPlusCore().m_TraderPlusVehiclesSettings;
 }
 
-static ref TraderPlusPriceSettings GetTraderPlusPriceConfig()	{
+static TraderPlusPriceSettings GetTraderPlusPriceConfig()	{
 	return GetTraderPlusCore().m_TraderPlusPriceSettings;
 }
 
@@ -34,11 +34,6 @@ static ref TraderPlusGnrlConfigClient GetTraderPlusConfigClient()	{
 /*class that allows to access config on server side everywhere*/
 static ref TraderPlusIDsSettings GetTraderPlusIDConfig()	{
 	return GetTraderPlusCore().m_TraderPlusIDsSettings;
-}
-
-/*clas that allows me to access the client class */
-static ref TraderPlusStock GetCurrentStock()	{
-	return GetTraderPlusCore().m_TraderPlusClient.m_TraderStock;
 }
 
 static ref TraderPlusClient GetTraderPlusClient()	{

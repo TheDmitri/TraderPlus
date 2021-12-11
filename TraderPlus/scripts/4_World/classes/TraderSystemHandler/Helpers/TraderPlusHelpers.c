@@ -1,5 +1,42 @@
 class TraderPlusHelper
 {
+  static TStringArray GetCategoriesFromID(int id)
+  {
+    int count = GetTraderPlusIDConfig().IDs.Count();
+    TStringArray categories = new TStringArray;
+    for(int i = 0 ; i< count ; i++)
+    {
+      if(GetTraderPlusIDConfig().IDs[i].Id == id)
+      {
+        categories = GetTraderPlusIDConfig().IDs[i].Categories;
+      }
+    }
+
+    return categories;
+  }
+
+  static TraderPlusCategory GetStockCategory(int id, string category)
+  {
+    string idPath = TRADERPLUS_DB_DIR_SERVER +"ID_"+id.ToString()+"\\";
+		string categoryPath = idPath + category + ".json";
+		TraderPlusCategory tpStockCategory = new TraderPlusCategory;
+		TraderPlusJsonLoader<TraderPlusCategory>.LoadFromFile(categoryPath, tpStockCategory);
+    return tpStockCategory;
+  }
+
+  static int GetTimeStamp()
+  {
+  	int year, month, day, hour, minute, second;
+  	GetHourMinuteSecondUTC(hour, minute, second);
+  	GetYearMonthDayUTC(year, month, day);
+  	return JMDate.Timestamp(year,month,day,hour,minute,second);
+  }
+
+  static int GetExecutionTime(int timeOrigin)
+  {
+    return (GetTimeStamp()-timeOrigin);
+  }
+
   //functions made by MaD to empty mag before selling them, thanks for your support !
   static void EmptyMag(PlayerBase player, Magazine mag)
     {
@@ -82,7 +119,7 @@ class TraderPlusHelper
   }
   //end function from MaD
 
-  static bool CheckStock(string name, int health, int i)
+  /*static bool CheckStock(string name, int health, int i)
 	{
 		for(int j=0; j<GetTraderPlusServer().TraderStocks.Get(i).TraderPlusItems.Count();j++)
 		{
@@ -96,7 +133,7 @@ class TraderPlusHelper
 			token.Clear();
 		}
 		return false;
-	}
+	}*/
 
   static int GetTraderIDBasedOnCategory(string categoryname)
   {
@@ -344,27 +381,21 @@ class TraderPlusHelper
 		return false;
 	}
 
-  static bool GetPlayersItems(PlayerBase player, out array<string>classname, out array<string>count, out array<string>quantity, out array<string>health, out array<bool>attch, string filter = "")
+  static bool GetPlayersItems(PlayerBase player, out array<ref TraderPlusArticle>playerItems, string filter = "")
   {
       if(!player)return false;
 
-      classname.Clear();
-      count.Clear();
-      quantity.Clear();
-      health.Clear();
-      attch.Clear();
+      playerItems.Clear();
 
   		array<EntityAI> itemsArray = new array<EntityAI>;
   		player.GetInventory().EnumerateInventory(InventoryTraversalType.PREORDER, itemsArray);
-  		for (int i = 0; i < itemsArray.Count(); i++)
+  		foreach(EntityAI entity: itemsArray)
   		{
-  				ItemBase temp = ItemBase.Cast(itemsArray.Get(i));
+  				ItemBase temp = ItemBase.Cast(entity);
           if(temp && temp.IsLockedInSlot())continue;
-          if(Weapon_Base.Cast(itemsArray.Get(i).GetHierarchyParent()))continue;
-          InventoryLocation il = new InventoryLocation;
-          itemsArray.Get(i).GetInventory().GetCurrentInventoryLocation( il );
-    			if( !il.IsValid() )continue;
-          if(IsWearByPlayer(il))continue;
+          if(Weapon_Base.Cast(entity.GetHierarchyParent()))continue;
+          if(IsWearByPlayer(entity))continue;
+          TraderPlusArticle product = new TraderPlusArticle;
   				if (temp && !temp.IsInherited(SurvivorBase))
   				{
               if(temp.IsKindOf("ReceiptBase"))
@@ -372,36 +403,27 @@ class TraderPlusHelper
                 ReceiptBase carBox = ReceiptBase.Cast(temp);
                 string type = GetVehicleClassNameBasedOnID(carBox.CarID);
                 if(!CanAddProductToList(filter, type))continue;
-                classname.Insert(type);
-                quantity.Insert("1");
-                count.Insert("1");
-                health.Insert(temp.GetHealthLevel().ToString());
-                attch.Insert(true);
+                product.AddPlayerItems("",type,1,1,temp.GetHealthLevel(), true);
+                playerItems.Insert(product);
                 continue;
               }
               if (temp.IsKindOf("Edible_Base"))
           		{
           			Edible_Base edible = Edible_Base.Cast(temp);
           	    if (edible.HasFoodStage() && edible.GetFoodStageType() != FoodStageType.RAW)
-          			{
-          				continue;
-          			}
+          				 continue;
           		}
               int amount = GetItemAmount(temp);
               if(amount == 0)amount = 1;
               if(!CanAddProductToList(filter, temp.GetType()))continue;
-              classname.Insert(temp.GetType());
-  						quantity.Insert(amount.ToString());
-              count.Insert("1");
-  						health.Insert(temp.GetHealthLevel().ToString());
-              if(IsInventoryEmpty(temp))
-  						attch.Insert(true);
-  						else attch.Insert(false);
+              product.AddPlayerItems("",temp.GetType(),1,amount,temp.GetHealthLevel(), IsInventoryEmpty(temp));
+              playerItems.Insert(product);
   				}
   		}
-  		if(classname.Count() > 0 && quantity.Count() > 0 && health.Count() > 0)
-  		return true;
-  		else return false;
+  		if(playerItems.Count() > 0)
+  		    return true;
+
+      return false;
   }
 
   static void GetPlayersAttachmentsWeight(PlayerBase player)
@@ -410,12 +432,7 @@ class TraderPlusHelper
     {
       EntityAI ent = player.FindAttachmentBySlotName(playerAttachments[i]);
       if(ent)
-      {
         float weight = ent.GetWeight();
-        #ifdef TRADERPLUSDEBUG
-        GetTraderPlusLogger().LogInfo("Att:"+playerAttachments[i]+" weight:"+weight.ToString());
-        #endif
-      }
     }
   }
 
@@ -455,37 +472,29 @@ class TraderPlusHelper
     "Splint_Right"
   };
 
-  static int GetSlotForPlayerPreview(string classname)
+  static int GetSlotForPlayerPreview(string className)
   {
     TStringArray classnameArr = new TStringArray;
-    string Vpath = CFG_VEHICLESPATH + " " + classname + " inventorySlot";
+    string Vpath = CFG_VEHICLESPATH + " " + className + " inventorySlot";
     if ( GetGame().ConfigIsExisting( Vpath ) )
-    {
-      g_Game.ConfigGetTextArray( Vpath , classnameArr);
-    }
+        g_Game.ConfigGetTextArray( Vpath , classnameArr);
 
-    for(int i=0;i<classnameArr.Count();i++)
+    foreach(string classname: classnameArr)
     {
-      #ifdef TRADERPLUSDEBUG
-      GetTraderPlusLogger().LogInfo("classnameArr"+classnameArr[i]);
-      #endif
-      for(int j=0;j<playerAttachments.Count();j++)
+      foreach(int idx, string playerAtt:playerAttachments)
       {
-        #ifdef TRADERPLUSDEBUG
-        GetTraderPlusLogger().LogInfo("playerAttachments"+playerAttachments[j]);
-        #endif
-        if(classnameArr[i]==playerAttachments[j])
-        {
-          return j;
-        }
+        if(classname==playerAtt)
+            return idx;
       }
     }
-
     return -1;
   }
 
-static bool IsWearByPlayer(InventoryLocation il)
+static bool IsWearByPlayer(EntityAI entity)
 {
+    InventoryLocation il = new InventoryLocation;
+    entity.GetInventory().GetCurrentInventoryLocation( il );
+    if( !il.IsValid() )return true;
     // check the direct parent (clothing will be the parent if not on man attachment)
     if (il.GetParent() && !il.GetParent().IsInherited(Man))
         return false;
@@ -522,13 +531,9 @@ static bool IsWearByPlayer(InventoryLocation il)
       if (Class.CastTo(mag, item))
       {
         if(mag.IsAmmoPile())
-        {
           quantity = mag.GetAmmoCount();
-        }
         else
-        {
           quantity = 1;
-        }
       }
       else
         quantity = item.GetQuantity();
@@ -542,24 +547,19 @@ static bool IsWearByPlayer(InventoryLocation il)
   		int quantity = 0;
   		array<EntityAI> itemsArray = new array<EntityAI>;
   		player.GetInventory().EnumerateInventory(InventoryTraversalType.PREORDER, itemsArray);
-  		for (int i = 0; i < itemsArray.Count(); i++)
-  		{
-  				string type = itemsArray.Get(i).GetType();
-          InventoryLocation il = new InventoryLocation;
-          itemsArray.Get(i).GetInventory().GetCurrentInventoryLocation( il );
-          if( !il.IsValid() )continue;
-          if(IsWearByPlayer(il))continue;
-  				type.ToLower();
-  				if (type == classname)
-  				{
-              ItemBase temp = ItemBase.Cast(itemsArray.Get(i));
-              if(temp && temp.IsLockedInSlot())continue;
-              if(temp && (temp.GetHealthLevel() == health || health == -1))
-              {
+      foreach(EntityAI entity: itemsArray)
+      {
+        string type = entity.GetType();
+        if(IsWearByPlayer(entity))continue;
+        type.ToLower();
+        if (type == classname)
+        {
+            ItemBase temp = ItemBase.Cast(entity);
+            if(temp && temp.IsLockedInSlot())continue;
+            if(temp && (temp.GetHealthLevel() == health || health == -1))
                 quantity+=GetItemSpecificAmount(temp);
-              }
-  				}
-  		}
+        }
+      }
       #ifdef TRADERPLUSDEBUG
       GetTraderPlusLogger().LogInfo("GetQuantityOfSpecificItem => quantity :"+quantity.ToString());
       #endif
@@ -570,13 +570,9 @@ static bool IsWearByPlayer(InventoryLocation il)
   static string GetVehicleClassNameBasedOnID(int id)
   {
     if(GetGame().IsServer())
-    {
       return GetTraderPlusVehiculeConfig().VehiclesParts.Get(id).VehicleName;
-    }
     else
-    {
       return GetTraderPlusConfigClient().VehicleNames.Get(id);
-    }
   }
 
   static bool IsVehicle(string classname)
@@ -821,9 +817,7 @@ static bool IsWearByPlayer(InventoryLocation il)
       string lowVehicleName = GetTraderPlusVehiculeConfig().VehiclesParts.Get(i).VehicleName;
       lowVehicleName.ToLower();
       if(lowClassName==lowVehicleName)
-      {
-        return true;
-      }
+          return true;
     }
     return false;
   }
@@ -840,9 +834,7 @@ static bool IsWearByPlayer(InventoryLocation il)
         float currentquantity, minquantity, maxquantity;
         QuantityConversions.GetItemQuantity(temp_item, currentquantity, minquantity, maxquantity);
         if(maxquantity == 0)
-        {
-          maxquantity = 1;
-        }
+            maxquantity = 1;
         GetGame().ObjectDelete(temp_item);
         return maxquantity;
       }
@@ -855,24 +847,18 @@ static bool IsWearByPlayer(InventoryLocation il)
   {
     string Vpath = CFG_VEHICLESPATH + " " + classname + " varQuantityMax";
     if ( GetGame().ConfigIsExisting( Vpath ) )
-    {
-      return g_Game.ConfigGetInt( Vpath );
-    }
+        return g_Game.ConfigGetInt( Vpath );
 
     string Wpath = CFG_WEAPONSPATH + " " + classname + " varQuantityMax";
     if (GetGame().ConfigIsExisting( Wpath ))
-    {
         return g_Game.ConfigGetInt( Wpath );
-    }
 
     string Mpath = CFG_MAGAZINESPATH + " " + classname + " varQuantityMax";
-    if(classname.Contains("Ammo_") || classname.Contains("Mag_")){
+    if(classname.Contains("Ammo_") || classname.Contains("Mag_"))
       Mpath = CFG_MAGAZINESPATH + " " + classname + " count";
-    }
+
     if (GetGame().ConfigIsExisting( Mpath ))
-    {
         return g_Game.ConfigGetInt( Mpath );
-    }
 
     return 0;
   }
@@ -893,9 +879,7 @@ static bool IsWearByPlayer(InventoryLocation il)
   {
     Weapon_Base wpn = Weapon_Base.Cast(player.GetHumanInventory().GetEntityInHands());
     if(wpn)
-    {
-      return wpn.GetType();
-    }
+        return wpn.GetType();
     return "";
   }
 
@@ -904,23 +888,17 @@ static bool IsWearByPlayer(InventoryLocation il)
     TStringArray magazines = new TStringArray;
     string path = CFG_WEAPONSPATH + " " + classname + " magazines";
     if ( GetGame().ConfigIsExisting( path ) )
-    {
-      g_Game.ConfigGetTextArray(path, magazines);
-    }
+        g_Game.ConfigGetTextArray(path, magazines);
 
     TStringArray ammunitions = new TStringArray;
     path = CFG_WEAPONSPATH + " " + classname + " chamberableFrom";
     if ( GetGame().ConfigIsExisting( path ) )
-    {
-      g_Game.ConfigGetTextArray(path, ammunitions);
-    }
+        g_Game.ConfigGetTextArray(path, ammunitions);
 
     TStringArray optics = new TStringArray;
     path = CFG_WEAPONSPATH + " " + classname + " ironsightsExcludingOptics";
     if ( GetGame().ConfigIsExisting( path ) )
-    {
-      g_Game.ConfigGetTextArray(path, optics);
-    }
+        g_Game.ConfigGetTextArray(path, optics);
 
     TStringArray sumArray = new TStringArray;
     sumArray.InsertAll(magazines);
@@ -932,14 +910,10 @@ static bool IsWearByPlayer(InventoryLocation il)
   static int GetMagazineMaxCount(string classname)
   {
     string Mpath = CFG_MAGAZINESPATH + " " + classname + " varQuantityMax";
-    if(classname.Contains("Ammo_")){
-      Mpath = CFG_MAGAZINESPATH + " " + classname + " count";
-    }
+    if(classname.Contains("Ammo_"))
+        Mpath = CFG_MAGAZINESPATH + " " + classname + " count";
     if (GetGame().ConfigIsExisting( Mpath ))
-    {
         return g_Game.ConfigGetInt( Mpath );
-    }
-
     return 1;
   }
 
@@ -1007,9 +981,7 @@ static bool IsWearByPlayer(InventoryLocation il)
               maxquantity = 1;
             }
             if ((currentquantity + quantity) <= maxquantity)
-            {
                 stackableItems.Insert(temp);
-            }
         }
     }
 
@@ -1045,24 +1017,6 @@ static bool IsWearByPlayer(InventoryLocation il)
         #endif
         return ItemBase.Cast(newItem);
       }
-
-
-      /*InventoryLocation il = new InventoryLocation;
-      itemsArray.Get(j).GetInventory().GetCurrentInventoryLocation( il );
-      if(player.GetInventory().FindFirstFreeLocationForNewEntity(classname, FindInventoryLocationType.ANY, il))
-      {
-        #ifdef TRADERPLUSDEBUG
-        GetTraderPlusLogger().LogInfo("Find A Location For Spawning the Item");
-        #endif
-        ItemBase newItem = ItemBase.Cast(il.GetParent().GetInventory().CreateEntityInCargoEx(classname, il.GetIdx(), il.GetRow(), il.GetCol(), il.GetFlip()));
-        if (newItem)
-        {
-          #ifdef TRADERPLUSDEBUG
-          GetTraderPlusLogger().LogInfo("Item succesfully spawned at location");
-          #endif
-          return newItem;
-        }
-      }*/
     }
     return NULL;
   }
@@ -1135,120 +1089,114 @@ static bool IsWearByPlayer(InventoryLocation il)
 
   static bool RemoveOurProduct(PlayerBase player, string classname, int quantity, int health = -1, bool handcheck = false, int multiplier = 1)
   {
-      #ifdef TRADERPLUSDEBUG
-      GetTraderPlusLogger().LogInfo("RemoveOurProduct - Started");
-      #endif
-      string vehicleclassname ="";
+    string vehicleclassname = "";
+    //we start to check if our product is a vehicle, if it is, we delete the receipt based on the car's id
+    if(IsProductVehicle(classname))
+    {
+      vehicleclassname = classname;
+      classname="Receipt";
+    }
 
-      //we start to check if our product is a vehicle, if it is, we delete the receipt based on the car's id
-      if(IsProductVehicle(classname))
-      {
-        vehicleclassname = classname;
-        classname="Receipt";
-      }
+    //if quantity is -1, we determine max quantity of the item
+    if(quantity < 0)
+        quantity = GetMaxItemQuantityServer(classname);
 
-      //if quantity is -1, we determine max quantity of the item
-      if(quantity < 0)quantity = GetMaxItemQuantityServer(classname);
-
-      //if we don't have enough quantity in inventory, we don't delete anything to avoid any issue
-      if(GetQuantityOfSpecificItem(player,classname, health) < quantity)
-      {
-        GetTraderPlusLogger().LogInfo("GetQuantityOfSpecificItem <"+quantity.ToString());
+    //if we don't have enough quantity in inventory, we don't delete anything to avoid any issue
+    if(GetQuantityOfSpecificItem(player,classname, health) < quantity)
         return false;
-      }
 
-      array<EntityAI> attachments   = new array<EntityAI>;
-      array<EntityAI> itemsArray = new array<EntityAI>;
-      player.GetInventory().EnumerateInventory(InventoryTraversalType.PREORDER, itemsArray);
+    array<EntityAI> attachments   = new array<EntityAI>;
+    array<EntityAI> itemsArray = new array<EntityAI>;
+    player.GetInventory().EnumerateInventory(InventoryTraversalType.PREORDER, itemsArray);
 
-      for(int i = 0; i<itemsArray.Count(); i++)
+    foreach(EntityAI entity: itemsArray)
+    {
+      ItemBase temp = ItemBase.Cast(entity);
+
+      //if item is lock, continue
+      if(temp && temp.IsLockedInSlot())continue;
+
+      //check if entity is wear by player, if yes, continue
+      if(IsWearByPlayer(entity))continue;
+
+      if( !handcheck && Weapon_Base.Cast(entity.GetHierarchyParent()))continue;
+
+      if (temp && !temp.IsInherited(SurvivorBase) && (temp.GetHealthLevel() == health || health == -1))
       {
-          ItemBase temp = ItemBase.Cast(itemsArray.Get(i));
-          if(temp && temp.IsLockedInSlot())continue;
-          InventoryLocation il = new InventoryLocation;
-          itemsArray.Get(i).GetInventory().GetCurrentInventoryLocation( il );
-          if( !il.IsValid() )continue;
-          if( !handcheck && Weapon_Base.Cast(itemsArray.Get(i).GetHierarchyParent()))continue;
-          if(IsWearByPlayer(il))continue;
-          if (temp && !temp.IsInherited(SurvivorBase) && (temp.GetHealthLevel() == health || health == -1))
+          #ifdef TRADERPLUSDEBUG
+          GetTraderPlusLogger().LogInfo(temp.GetType() +"=?"+classname);
+          #endif
+          if (temp.GetType() == classname)
           {
-              #ifdef TRADERPLUSDEBUG
-              GetTraderPlusLogger().LogInfo(temp.GetType() +"=?"+classname);
-              #endif
-              if (temp.GetType() == classname)
+            if(vehicleclassname!="")
+            {
+              ReceiptBase receipt = ReceiptBase.Cast(temp);
+              if(GetVehicleClassNameBasedOnID(receipt.CarID) == vehicleclassname)
+                  GetGame().ObjectDelete(entity);
+              continue;
+            }
+            if (temp.IsKindOf("Edible_Base"))
+            {
+              Edible_Base edible = Edible_Base.Cast(temp);
+              if (edible.HasFoodStage() && edible.GetFoodStageType() != FoodStageType.RAW)
+                  continue;
+            }
+            if ((QuantityConversions.HasItemQuantity(temp) == 0) || (temp.IsInherited(Magazine) && !temp.IsInherited(Ammunition_Base)))
+            {
+                Magazine mag = Magazine.Cast(temp);
+                if(mag)EmptyMag(player,mag);
+                attachments = GetAttachments(temp);
+                quantity--;
+                GetGame().ObjectDelete(entity);
+                #ifdef TRADERPLUSDEBUG
+                GetTraderPlusLogger().LogInfo("item without quantity => deleted");
+                #endif
+            }
+            else
+            {
+              if (GetItemAmount(temp) > quantity && quantity!=0)
               {
-                if(vehicleclassname!="")
-                {
-                  ReceiptBase receipt = ReceiptBase.Cast(temp);
-                  if(GetVehicleClassNameBasedOnID(receipt.CarID) == vehicleclassname)
-                  {
-                    GetGame().ObjectDelete(itemsArray[i]);
-                  }else continue;
-                }
-                if (temp.IsKindOf("Edible_Base"))
-            		{
-            			Edible_Base edible = Edible_Base.Cast(temp);
-            	    if (edible.HasFoodStage() && edible.GetFoodStageType() != FoodStageType.RAW)
-            			{
-            				continue;
-            			}
-            		}
-                if ((QuantityConversions.HasItemQuantity(temp) == 0) || (temp.IsInherited(Magazine) && !temp.IsInherited(Ammunition_Base)))
-                {
-                    Magazine mag = Magazine.Cast(temp);
-                    if(mag)EmptyMag(player,mag);
-                    attachments = GetAttachments(temp);
-                    quantity--;
-                    GetGame().ObjectDelete(itemsArray[i]);
-                    #ifdef TRADERPLUSDEBUG
-                    GetTraderPlusLogger().LogInfo("item without quantity => deleted");
-                    #endif
-                }
-                else
-                {
-                  if (GetItemAmount(temp) > quantity && quantity!=0)
-                  {
-                      temp = AddQuantity(temp,quantity*-1);
-                      #ifdef TRADERPLUSDEBUG
-                      GetTraderPlusLogger().LogInfo("item with quantity => quantity removed:"+quantity.ToString());
-                      #endif
-                      quantity=0;
-                  }
-                  else
-                  {
-                      attachments = GetAttachments(temp);
-                      quantity -= GetItemAmount(temp);
-                      GetGame().ObjectDelete(itemsArray[i]);
-                      #ifdef TRADERPLUSDEBUG
-                      GetTraderPlusLogger().LogInfo("item with quantity => item & quantity removed:"+quantity.ToString());
-                      #endif
-                  }
-                }
-                if(attachments && attachments.Count()>0){
-                  RecreateAllAttachments(player,attachments);
+                  temp = AddQuantity(temp,quantity*-1);
                   #ifdef TRADERPLUSDEBUG
-                  GetTraderPlusLogger().LogInfo("recreate att");
+                  GetTraderPlusLogger().LogInfo("item with quantity => quantity removed:"+quantity.ToString());
                   #endif
-                }
-                if(quantity <= 0)
-                {
-                  #ifdef TRADERPLUSDEBUG
-                  GetTraderPlusLogger().LogInfo("quantity <= 0"+quantity.ToString());
-                  #endif
-                  return true;
-                }
+                  quantity=0;
               }
+              else
+              {
+                  attachments = GetAttachments(temp);
+                  quantity -= GetItemAmount(temp);
+                  GetGame().ObjectDelete(entity);
+                  #ifdef TRADERPLUSDEBUG
+                  GetTraderPlusLogger().LogInfo("item with quantity => item & quantity removed:"+quantity.ToString());
+                  #endif
+              }
+            }
+            if(attachments && attachments.Count()>0){
+              RecreateAllAttachments(player,attachments);
+              #ifdef TRADERPLUSDEBUG
+              GetTraderPlusLogger().LogInfo("recreate att");
+              #endif
+            }
+            if(quantity <= 0)
+            {
+              #ifdef TRADERPLUSDEBUG
+              GetTraderPlusLogger().LogInfo("quantity <= 0"+quantity.ToString());
+              #endif
+              return true;
+            }
           }
       }
-      if(quantity == 0)
-      {
-        #ifdef TRADERPLUSDEBUG
-        GetTraderPlusLogger().LogInfo("quantity == 0"+quantity.ToString());
-        #endif
-        return true;
-      }
-      if(!handcheck) return RemoveOurProduct(player, classname, quantity, health, true);
-      return false;
+    }
+    if(quantity == 0)
+    {
+      #ifdef TRADERPLUSDEBUG
+      GetTraderPlusLogger().LogInfo("quantity == 0"+quantity.ToString());
+      #endif
+      return true;
+    }
+    if(!handcheck) return RemoveOurProduct(player, classname, quantity, health, true);
+    return false;
   }
   //-----------------------End Create - Delete Handler functions-----------------------------//
 
@@ -1273,16 +1221,12 @@ static bool IsWearByPlayer(InventoryLocation il)
   }
 
   //--------------------------Money handler functions---------------------------//
-  static bool CheckifPlayerHasEnoughMoney(PlayerBase player, int price, int id)
+  static bool CheckifPlayerHasEnoughMoney(PlayerBase player, int price, int id, out int playerMoneyAmount)
   {
-    int playerMoneyAmount = GetPlayerMoney(player, id);
-    #ifdef TRADERPLUSDEBUG
-    GetTraderPlusLogger().LogInfo("CheckifPlayerHasEnoughMoney: amount"+playerMoneyAmount.ToString());
-    #endif
+    playerMoneyAmount = GetPlayerMoney(player, id);
     if(playerMoneyAmount<price)
-    {
       return false;
-    }
+
     return true;
   }
 

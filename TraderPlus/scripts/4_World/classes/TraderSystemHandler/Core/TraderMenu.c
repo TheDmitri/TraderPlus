@@ -99,21 +99,11 @@ class TraderPlusMenu extends UIScriptedMenu
   private   int m_StockListPosition;
   private   int m_InventoryListPosition;
 
-  //arrays that deal with player's inventory list
-  private   ref array<string> m_playersItemsClassName;
-  private   ref array<string> m_playersItemsCount;
-  private   ref array<string> m_playersItemsQuantity;
-  private   ref array<string> m_playersItemsHealth;
-  private   ref array<bool>   m_playersItemsHasAttachments;
-
   //array list of all potential items that can be attached to item in hand
   private   ref TStringArray  m_compatibleItemsFromItemInHand;
 
-  //arrays that deal with stock list
-  ref array<string> m_StockItemsNames;
-	ref array<int> m_StockItemsQuantities;
-	ref array<int> m_StockItemsStates;
-  ref array<int> m_StockItemsMaxStock;
+  ref array<ref TraderPlusArticle> m_StockItems;
+	ref array<ref TraderPlusArticle> m_PlayerItems;
 
   //current product that is shown in the product information panel
   ref TraderPlusProduct m_CurrentProduct;
@@ -129,16 +119,9 @@ class TraderPlusMenu extends UIScriptedMenu
     localInventoryEntities        = new array<EntityAI>;
     m_WidgetStockList             = new map<Widget, int>();
     m_WidgetInventoryList         = new map<Widget, int>();
-    m_playersItemsClassName       = new array<string>;
-    m_playersItemsCount           = new array<string>;
-    m_playersItemsQuantity        = new array<string>;
-    m_playersItemsHealth          = new array<string>;
+    m_StockItems                  = new array<ref TraderPlusArticle>;
+  	m_PlayerItems                 = new array<ref TraderPlusArticle>;
     m_compatibleItemsFromItemInHand = new TStringArray;
-    m_playersItemsHasAttachments  = new array<bool>;
-    m_StockItemsNames             = new array<string>;
-		m_StockItemsQuantities        = new array<int>;
-		m_StockItemsStates            = new array<int>;
-    m_StockItemsMaxStock          = new array<int>;
     m_CurrentProduct              = new TraderPlusProduct;
     m_playerMoney                 = 0;
     m_transactionTick             = 0;
@@ -177,13 +160,12 @@ class TraderPlusMenu extends UIScriptedMenu
   void ClearAllStockList()
 	{
 		m_WidgetStockList.Clear();
-    for(int i=0;i<m_StockGrids.Count();i++)
+    foreach(GridSpacerWidget stockGrid:m_StockGrids)
     {
-      if(m_StockGrids[i])
-      {
-        DestroyAllChildren(m_StockGrids[i]);
-        m_MasterStockGrid.RemoveChild(m_StockGrids[i]);
-      }
+      if(!stockGrid)continue;
+      DestroyAllChildren(stockGrid);
+      m_MasterStockGrid.RemoveChild(stockGrid);
+
     }
     m_StockGrids.Clear();
 		DestroyLocalStockEntities();
@@ -207,13 +189,10 @@ class TraderPlusMenu extends UIScriptedMenu
   void DestroyLocalStockEntities()
 	{
 		if (!localStockEntities || !localStockEntities.Count()) return;
-
 		foreach (auto ent : localStockEntities)
 		{
 			if (ent)
-			{
 				ent.Delete();
-			}
 		}
     delete localStockEntities;
 	}
@@ -221,13 +200,10 @@ class TraderPlusMenu extends UIScriptedMenu
   void DestroyLocalInventoryEntities()
 	{
 		if (!localInventoryEntities || !localInventoryEntities.Count()) return;
-
 		foreach (auto ent : localInventoryEntities)
 		{
 			if (ent)
-			{
 				ent.Delete();
-			}
 		}
     delete localInventoryEntities;
 	}
@@ -293,12 +269,6 @@ class TraderPlusMenu extends UIScriptedMenu
 
   void UIHandle()
   {
-      // #ifdef TRADERPLUSDEBUG
-      // GetTraderPlusLogger().LogInfo("UIHandle - Started");
-      // #endif
-      //m_LoadingTextInv.Show(false);
-      //m_LoadingTextStock.Show(false);
-
       //Before anything else, we check for potential licenses set to the trader
       LicencesHandler();
 
@@ -328,7 +298,6 @@ class TraderPlusMenu extends UIScriptedMenu
         InitPlayerPreview();
       }
 
-      //GetPlayerMoney
       MoneyUpdate();
   }
 
@@ -348,30 +317,21 @@ class TraderPlusMenu extends UIScriptedMenu
 
   bool HasLicences(int id)
   {
+    bool   missingLicence = false;
     string licences = GetTraderPlusConfigClient().Licences.Get(id);
     TStringArray licencesArr = new TStringArray;
-    bool   missinglicence = false;
     licences.Split(",",licencesArr);
     m_MissingLicences = "";
-    for(int i = 0;i<licencesArr.Count();i++)
+    foreach(string licence: licencesArr)
     {
       bool haslicence = false;
       if(!GetBankAccount() || !GetBankAccount().Licences)return true;
-      for(int j=0;j<GetBankAccount().Licences.Count();j++)
-      {
-        if(licencesArr[i] == GetBankAccount().Licences[j])
-        {
-          haslicence = true;
-        }
-      }
-      if(!haslicence)
-      {
-        missinglicence = true;
-        m_MissingLicences += "\n -"+licencesArr[i];
+      if(GetBankAccount().Licences.Find(licence) == -1){
+        missingLicence = true;
+        m_MissingLicences += "\n -"+licence;
       }
     }
-    if(missinglicence)return false;
-    else return true;
+    return !missingLicence;
   }
 
   void ItemInHandHandler()
@@ -406,16 +366,15 @@ class TraderPlusMenu extends UIScriptedMenu
           FillStockListStep();
         }
 
-        if(m_BuyMode)
-        {
+        if(m_BuyMode){
           m_BttnBuy.Enable(true);
           m_BttnSell.Enable(false);
         }
-        else
-        {
+        else{
           m_BttnSell.Enable(true);
           m_BttnBuy.Enable(false);
         }
+
         m_ScrollListUpdate = 0.0;
       }
       else
@@ -629,14 +588,6 @@ class TraderPlusMenu extends UIScriptedMenu
         return true;
       }
       break;
-
-      // case m_PlayerPreview:
-      // {
-      //   m_CharacterScaleDelta = wheel;
-      //   UpdatePlayerScale();
-      //   return true;
-      // }
-      // break;
     }
     return false;
   }
@@ -662,72 +613,32 @@ class TraderPlusMenu extends UIScriptedMenu
     }
   }
 
-  //update player preview scale
-  // void UpdatePlayerScale()
-	// {
-	// 	if( m_PlayerPreview )
-	// 	{
-	// 		float w, h;
-	// 		m_PlayerPreview.GetSize( w, h );
-	// 		w = w + ( m_CharacterScaleDelta / 25 );
-	// 		h = h + ( m_CharacterScaleDelta / 25 );
-	// 		if ( w > 0.62 && w < 3 )
-	// 		{
-	// 			m_PlayerPreview.SetSize( w, h );
-	// 		}
-	// 		else if ( w < 0.62 )
-	// 		{
-	// 			m_PlayerPreview.SetSize( 1, 1 );
-	// 		}
-	// 		else if ( w > 3 )
-	// 		{
-	// 			m_PlayerPreview.SetSize( 3, 3 );
-	// 		}
-	// 	}
-	// }
-
   //filter inventory list based on searchfield in inv search bar
   void ShowFilteredInventoryList(string inventorycontent)
   {
-    #ifdef TRADERPLUSDEBUG
-		GetTraderPlusLogger().LogInfo("ShowFilteredInventoryList - m_playersItemsClassName.Count():"+m_playersItemsClassName.Count().ToString());
-		#endif
-    for(int i=0;i<m_playersItemsClassName.Count();i++)
+    foreach(int idx, ref TraderPlusArticle playerItem: m_PlayerItems)
     {
-      #ifdef TRADERPLUSDEBUG
-  		GetTraderPlusLogger().LogInfo("ShowFilteredInventoryList - classname:"+m_playersItemsClassName.Get(i)+" content:"+inventorycontent);
-  		#endif
-      string showedName = TraderPlusHelper.GetDisplayName(m_playersItemsClassName.Get(i));
+      string showedName = TraderPlusHelper.GetDisplayName(playerItem.ClassName);
       showedName.ToLower();
       inventorycontent.ToLower();
-      if(!showedName.Contains(inventorycontent) && !m_playersItemsClassName[i].Contains(inventorycontent))
-      {
-        m_playersItemsClassName.RemoveOrdered(i);
-        m_playersItemsQuantity.RemoveOrdered(i);
-        m_playersItemsCount.RemoveOrdered(i);
-        m_playersItemsHealth.RemoveOrdered(i);
-        m_playersItemsHasAttachments.RemoveOrdered(i);
-      }
+      if(!showedName.Contains(inventorycontent) && !playerItem.ClassName.Contains(inventorycontent))
+        m_PlayerItems.RemoveOrdered(idx);
     }
-    FillInventoryList(m_playersItemsClassName.Count());
+    FillInventoryList(m_PlayerItems.Count());
   }
 
   //filter stock list based on searchfield in inv search bar
   void ShowFilteredStockList(string stockcontent)
   {
-    for(int i=0;i<m_StockItemsNames.Count();i++)
+    foreach(int idx, ref TraderPlusArticle stockItem: m_StockItems)
     {
-      string showedName = TraderPlusHelper.GetDisplayName(m_StockItemsNames.Get(i));
+      string showedName = TraderPlusHelper.GetDisplayName(stockItem.ClassName);
       showedName.ToLower();
       stockcontent.ToLower();
-      if(!showedName.Contains(stockcontent) && !m_StockItemsNames[i].Contains(stockcontent))
-      {
-        m_StockItemsNames.RemoveOrdered(i);
-        m_StockItemsQuantities.RemoveOrdered(i);
-        m_StockItemsStates.RemoveOrdered(i);
-      }
+      if(!showedName.Contains(stockcontent) && !stockItem.ClassName.Contains(stockcontent))
+        m_StockItems.RemoveOrdered(idx);
     }
-    thread FillStockList(m_StockItemsNames.Count());
+    thread FillStockList(m_StockItems.Count());
   }
 
   //display trader name and role
@@ -735,12 +646,12 @@ class TraderPlusMenu extends UIScriptedMenu
   {
     for(int i=0;i<GetTraderPlusConfigClient().TraderPos.Count();i++)
     {
-      vector traderpos = GetTraderPlusConfigClient().TraderPos.Get(i);
+      vector traderpos = GetTraderPlusConfigClient().TraderPos[i];
       float  distance  = vector.Distance(traderpos,TraderPos);
       if(distance < 1 )
       {
-        m_TraderNameText.SetText(GetTraderPlusConfigClient().GivenNames.Get(i));
-        m_TraderDescriptionText.SetText(GetTraderPlusConfigClient().Roles.Get(i));
+        m_TraderNameText.SetText(GetTraderPlusConfigClient().GivenNames[i]);
+        m_TraderDescriptionText.SetText(GetTraderPlusConfigClient().Roles[i]);
       }
     }
   }
@@ -763,19 +674,16 @@ class TraderPlusMenu extends UIScriptedMenu
     int categoryCount = GetTraderPlusClient().GetCategoriesFromID(TraderID);
     for (int i = 0; i < categoryCount; i++)
     {
-      m_StockCategories.AddItem(GetTraderPlusClient().m_StockCategories.Get(i));
+      m_StockCategories.AddItem(GetTraderPlusClient().m_StockCategories[i]);
     }
     m_StockCategories.SetCurrentItem(m_selectedCatStock);
   }
 
-  //fill inventory list based on all the arrays "m_playersItems"
+  //fill inventory list based on all the arrays "m_playerItems"
   void FillInventoryList(int inventorycount)
   {
     ClearAllInventoryList();
     m_QtyMultiplier = 1;
-    /*m_LoadingText.Show(true);
-    Sleep(250);
-    m_LoadingText.Show(false);*/
     if(!m_InventoryScrollWidget)
     {
       m_InventoryScrollWidget = ScrollWidget.Cast(GetGame().GetWorkspace().CreateWidgets( "TraderPlus/gui/StockGrid.layout", m_InventoryScrollPanel));
@@ -801,15 +709,14 @@ class TraderPlusMenu extends UIScriptedMenu
       int cA,cR,cG,cB;
       int tradeqty,maxstock, stock = 0;
       int currentGrid = j/300;
-      int itemPositionInStock = GetTraderPlusClient().GetProductPositionFromStock(m_playersItemsClassName.Get(j),m_playersItemsHealth.Get(j));
+      string classname = m_PlayerItems[j].ClassName;
+      int    health    = m_PlayerItems[j].Health;
+      string category = GetTraderPlusClient().GetProductCategory(classname);
+      stock = GetTraderPlusClient().GetStockProductFromStock(category,classname,health);
       //if stock qty exist, we define our stock var
-      if(itemPositionInStock != -1)
-      {
-        stock = GetTraderPlusClient().GetStockQtyFromPosition(itemPositionInStock);
-      }
-      int    price = CalculatePriceForThatItem(TRADEMODE_SELL,m_playersItemsClassName.Get(j),stock,m_playersItemsHealth.Get(j).ToInt(),maxstock, tradeqty);
+      int    price = GetTraderPlusClient().CalculatePriceForThatItem(m_QtyMultiplier,TRADEMODE_SELL,category,classname,stock,health,maxstock, tradeqty);
       #ifdef TRADERPLUSDEBUG
-  		GetTraderPlusLogger().LogInfo("Product:"+m_playersItemsClassName.Get(j) + " price:"+price);
+  		GetTraderPlusLogger().LogInfo("Product:"+classname + " price:"+price);
   		#endif
       if(m_InventoryGrids[currentGrid] == NULL)return;
   		widget = GetGame().GetWorkspace().CreateWidgets( "TraderPlus/gui/ProductCard.layout", m_InventoryGrids[currentGrid]);
@@ -823,11 +730,11 @@ class TraderPlusMenu extends UIScriptedMenu
       itemCount  = TextWidget.Cast(widget.FindAnyWidget("StockCountInput"));
       itemPrice = TextWidget.Cast(widget.FindAnyWidget("Price"));
 
-      string itemType = m_playersItemsClassName.Get(j);
+      string itemType = classname;
       if(itemType.Contains(GetTraderPlusConfigClient().LicenceKeyWord))itemType = "Paper";
   		EntityAI localEnt = EntityAI.Cast(GetGame().CreateObject(itemType, vector.Zero, true, false));
 
-      string displayName = TraderPlusHelper.GetDisplayName(m_playersItemsClassName.Get(j));
+      string displayName = TraderPlusHelper.GetDisplayName(classname);
       int NameLenght = displayName.Length();
       if(NameLenght <= 12)
       {
@@ -845,13 +752,13 @@ class TraderPlusMenu extends UIScriptedMenu
       itemName.SetText(displayName);
       itemName.Show(true);
       #ifdef TRADERPLUSDEBUG
-  		GetTraderPlusLogger().LogInfo("Product:"+m_playersItemsClassName.Get(j) + " health:"+m_playersItemsHealth.Get(j));
+  		GetTraderPlusLogger().LogInfo("Product:"+classname + " health:"+health);
   		#endif
-      string healthText = TraderPlusHelper.GetHealthFromLevel(m_playersItemsHealth.Get(j).ToInt(),cA,cR,cG,cB);
+      string healthText = TraderPlusHelper.GetHealthFromLevel(health,cA,cR,cG,cB);
       itemPrice.SetText(TraderPlusHelper.IntToCurrencyString(price, ","));
       itemHealth.SetColor(ARGB(cA,cR,cG,cB));
       itemCountTitle.SetText("#tpm_count"+" "+":");
-      itemCount.SetText(m_playersItemsCount.Get(j));
+      itemCount.SetText(m_PlayerItems[j].Count.ToString());
       ItemBase temp = ItemBase.Cast(localEnt);
       if(temp)
       {
@@ -859,14 +766,14 @@ class TraderPlusMenu extends UIScriptedMenu
         {
           Print("Ammunition_Base");
         }
-        if(m_playersItemsClassName.Get(j).Contains("Mag"))
+        if(classname.Contains("Mag"))
         {
           Print("Mag");
         }
-        if(temp.IsInherited(Ammunition_Base) && !m_playersItemsClassName.Get(j).Contains("Mag"))
+        if(temp.IsInherited(Ammunition_Base) && !classname.Contains("Mag"))
         {
           Print("Mag + Ammunition_Base");
-          itemCount.SetText(m_playersItemsQuantity.Get(j));
+          itemCount.SetText(m_PlayerItems[j].Quantity.ToString());
         }
       }
       m_WidgetInventoryList.Insert(widget, j);
@@ -885,7 +792,7 @@ class TraderPlusMenu extends UIScriptedMenu
 
   void FillStockListStep()
   {
-    int maxcount = m_StockItemsNames.Count();
+    int maxcount = m_StockItems.Count();
     int currentcount = m_WidgetStockList.Count();
     if(currentcount == maxcount)return;
     int step = currentcount + 20;
@@ -901,17 +808,20 @@ class TraderPlusMenu extends UIScriptedMenu
       TextWidget	itemPrice;
 
       int cA,cR,cG,cB;
-      string quantity= m_StockItemsQuantities.Get(i).ToString();
-      int    maxstock= m_StockItemsMaxStock.Get(i);
+      string classname = m_StockItems[i].ClassName;
+      int    quantity= m_StockItems[i].Quantity;
+      int    maxstock= m_StockItems[i].MaxStock;
+      int    health  = m_StockItems[i].Health;
       int    tradeqty;
-      int    price = CalculatePriceForThatItem(false,m_StockItemsNames.Get(i),m_StockItemsQuantities.Get(i),m_StockItemsStates.Get(i),maxstock, tradeqty);
+      string  category = GetTraderPlusClient().GetProductCategory(classname);
+      int    price = GetTraderPlusClient().CalculatePriceForThatItem(m_QtyMultiplier,false,category,classname,quantity,health,maxstock, tradeqty);
       int    currentGrid = i/300;
 
       if(m_StockGrids[currentGrid] == NULL)return;
       widget = GetGame().GetWorkspace().CreateWidgets( "TraderPlus/gui/ProductCard.layout", m_StockGrids[currentGrid]);
       if (!widget) return;
       itemPlaceholder = ItemPreviewWidget.Cast(widget.FindAnyWidget("ProductPreview"));
-      string itemType = m_StockItemsNames.Get(i);
+      string itemType = classname;
       if(itemType.Contains(GetTraderPlusConfigClient().LicenceKeyWord))itemType = "Paper";
     	EntityAI localEnt = EntityAI.Cast(GetGame().CreateObject(itemType, vector.Zero, true, false));
       if (localEnt)
@@ -929,7 +839,7 @@ class TraderPlusMenu extends UIScriptedMenu
       itemStock  = TextWidget.Cast(widget.FindAnyWidget("StockCountInput"));
       itemPrice = TextWidget.Cast(widget.FindAnyWidget("Price"));
 
-      string displayName = TraderPlusHelper.GetDisplayName(m_StockItemsNames.Get(i));
+      string displayName = TraderPlusHelper.GetDisplayName(classname);
       int NameLenght = displayName.Length();
       if(NameLenght <= 12)
       {
@@ -946,22 +856,23 @@ class TraderPlusMenu extends UIScriptedMenu
       }
       itemName.SetText(displayName);
       itemName.Show(true);
-      string healthText = TraderPlusHelper.GetHealthFromLevel(m_StockItemsStates.Get(i),cA,cR,cG,cB);
+      string healthText = TraderPlusHelper.GetHealthFromLevel(health,cA,cR,cG,cB);
       itemPrice.SetText(TraderPlusHelper.IntToCurrencyString(price, ","));
       itemHealth.SetColor(ARGB(cA,cR,cG,cB));
-      if(quantity=="-1" || maxstock == -1)
+      string strquantity = quantity.ToString();
+      if(quantity==-1 || maxstock == -1)
       {
-        quantity="∞";
-      }else quantity = quantity + "/" + m_StockItemsMaxStock.Get(i).ToString();
+        strquantity="∞";
+      }else strquantity = strquantity + "/" + maxstock.ToString();
       itemStockTitle.SetText("#tpm_stock"+" "+":");
-      itemStock.SetText(quantity);
-      if(m_StockItemsQuantities.Get(i) == m_StockItemsMaxStock.Get(i) && m_StockItemsQuantities.Get(i) != -1)
+      itemStock.SetText(strquantity);
+      if(quantity == maxstock && quantity != -1)
       {
         itemName.SetColor(ARGB(255,191,48,48) );
         itemHealth.SetColor(ARGB(255,191,48,48) );
         itemStock.SetColor(ARGB(255,191,48,48) );
       }
-      if(IsItemCompatible(m_StockItemsNames.Get(i)))
+      if(IsItemCompatible(classname))
       {
         Widget highLightProduct = Widget.Cast(widget.FindAnyWidget("Highlight"));
         highLightProduct.Show(true);
@@ -1003,17 +914,21 @@ class TraderPlusMenu extends UIScriptedMenu
       TextWidget	itemPrice;
 
       int cA,cR,cG,cB;
-      string quantity= m_StockItemsQuantities.Get(i).ToString();
-      int    maxstock= m_StockItemsMaxStock.Get(i);
+      string classname = m_StockItems[i].ClassName;
+      string category = GetTraderPlusClient().GetProductCategory(classname);
+      int    quantity = m_StockItems[i].Quantity;
+      string strquantity = m_StockItems[i].Quantity.ToString();
+      int    health = m_StockItems[i].Health;
+      int    maxstock= m_StockItems[i].MaxStock;
       int    tradeqty;
-      int    price = CalculatePriceForThatItem(false,m_StockItemsNames.Get(i),m_StockItemsQuantities.Get(i),m_StockItemsStates.Get(i),maxstock, tradeqty);
+      int    price = GetTraderPlusClient().CalculatePriceForThatItem(m_QtyMultiplier,false,category,classname,quantity,health,maxstock, tradeqty);
       int    currentGrid = i/300;
 
       if(m_StockGrids[currentGrid] == NULL)return;
       widget = GetGame().GetWorkspace().CreateWidgets( "TraderPlus/gui/ProductCard.layout", m_StockGrids[currentGrid]);
       if (!widget) return;
       itemPlaceholder = ItemPreviewWidget.Cast(widget.FindAnyWidget("ProductPreview"));
-      string itemType = m_StockItemsNames.Get(i);
+      string itemType = classname;
       if(itemType.Contains(GetTraderPlusConfigClient().LicenceKeyWord))itemType = "Paper";
     	EntityAI localEnt = EntityAI.Cast(GetGame().CreateObject(itemType, vector.Zero, true, false));
       if (localEnt)
@@ -1031,7 +946,7 @@ class TraderPlusMenu extends UIScriptedMenu
       itemStock  = TextWidget.Cast(widget.FindAnyWidget("StockCountInput"));
       itemPrice = TextWidget.Cast(widget.FindAnyWidget("Price"));
 
-      string displayName = TraderPlusHelper.GetDisplayName(m_StockItemsNames.Get(i));
+      string displayName = TraderPlusHelper.GetDisplayName(classname);
       int NameLenght = displayName.Length();
       if(NameLenght <= 12)
       {
@@ -1048,22 +963,22 @@ class TraderPlusMenu extends UIScriptedMenu
       }
       itemName.SetText(displayName);
       itemName.Show(true);
-      string healthText = TraderPlusHelper.GetHealthFromLevel(m_StockItemsStates.Get(i),cA,cR,cG,cB);
+      string healthText = TraderPlusHelper.GetHealthFromLevel(health,cA,cR,cG,cB);
       itemPrice.SetText(TraderPlusHelper.IntToCurrencyString(price, ","));
       itemHealth.SetColor(ARGB(cA,cR,cG,cB));
-      if(quantity=="-1" || maxstock == -1)
+      if(strquantity=="-1" || maxstock == -1)
       {
-        quantity="∞";
-      }else quantity = quantity + "/" + m_StockItemsMaxStock.Get(i).ToString();
+        strquantity="∞";
+      }else strquantity = strquantity + "/" + maxstock.ToString();
       itemStockTitle.SetText("#tpm_stock"+" "+":");
-      itemStock.SetText(quantity);
-      if(m_StockItemsQuantities.Get(i) == m_StockItemsMaxStock.Get(i) && m_StockItemsQuantities.Get(i) != -1)
+      itemStock.SetText(strquantity);
+      if(quantity == maxstock && quantity != -1)
       {
         itemName.SetColor(ARGB(255,191,48,48) );
         itemHealth.SetColor(ARGB(255,191,48,48) );
         itemStock.SetColor(ARGB(255,191,48,48) );
       }
-      if(IsItemCompatible(m_StockItemsNames.Get(i)))
+      if(IsItemCompatible(classname))
       {
         Widget highLightProduct = Widget.Cast(widget.FindAnyWidget("Highlight"));
         highLightProduct.Show(true);
@@ -1081,9 +996,7 @@ class TraderPlusMenu extends UIScriptedMenu
     for(int i = 0; i < m_compatibleItemsFromItemInHand.Count();i++)
     {
       if(m_compatibleItemsFromItemInHand[i]==classname)
-      {
         return true;
-      }
     }
     return false;
   }
@@ -1093,8 +1006,8 @@ class TraderPlusMenu extends UIScriptedMenu
   {
     m_selectedCatInventory = m_InventoryCategories.GetCurrentItem();
     ResetPlayerItemsArray();
-    int inventoryCount = GetTraderPlusClient().GetPlayerItemsFromCategory(m_selectedCatInventory,m_playersItemsClassName, m_playersItemsCount, m_playersItemsQuantity, m_playersItemsHealth,m_playersItemsHasAttachments,m_SearchInventory);
-    thread FillInventoryList(inventoryCount);
+    int inventoryCount = GetTraderPlusClient().GetPlayerItemsFromCategory(m_selectedCatInventory,m_PlayerItems,m_SearchInventory);
+    FillInventoryList(inventoryCount);
   }
 
   //Get category and show item in stock list according to the category chosen
@@ -1102,10 +1015,7 @@ class TraderPlusMenu extends UIScriptedMenu
 	{
 		m_selectedCatStock = m_StockCategories.GetCurrentItem();
     ResetStockItemsArrays();
-    int stockcount = GetTraderPlusClient().GetItemInStockFromCategory(m_selectedCatStock,m_StockItemsNames,m_StockItemsQuantities,m_StockItemsStates, m_StockItemsMaxStock, m_ShowAll, m_SearchStock);
-    #ifdef TRADERPLUSDEBUG
-    GetTraderPlusLogger().LogInfo("FillStockList: pos"+m_selectedCatStock.ToString()+"count:"+stockcount.ToString());
-    #endif
+    int stockcount = GetTraderPlusClient().GetItemInStockFromCategory(m_selectedCatStock,m_StockItems, m_ShowAll, m_SearchStock);
     thread FillStockList(stockcount);
 	}
 
@@ -1176,13 +1086,9 @@ class TraderPlusMenu extends UIScriptedMenu
     m_QtyMultiplier = m_QuantityMultiplier.GetCurrentItem();
     m_QtyMultiplier+=1;
     if(m_CurrentProduct.TradMode)
-    {
       InventoryListHandler();
-    }
     else
-    {
       StockListHandler();
-    }
   }
 
   void ResetMultiplier()
@@ -1198,7 +1104,8 @@ class TraderPlusMenu extends UIScriptedMenu
     ResetMultiplier();
     m_BuyMode = true;
     m_SellMode = false;
-    if(!m_ProductInformation.IsVisible())m_ProductInformation.Show(true);
+    if(!m_ProductInformation.IsVisible())
+        m_ProductInformation.Show(true);
     StockListHandler();
     BuyHandler();
   }
@@ -1209,7 +1116,8 @@ class TraderPlusMenu extends UIScriptedMenu
     ResetMultiplier();
     m_BuyMode = false;
     m_SellMode = true;
-    if(!m_ProductInformation.IsVisible())m_ProductInformation.Show(true);
+    if(!m_ProductInformation.IsVisible())
+        m_ProductInformation.Show(true);
     InventoryListHandler();
     SellHandler();
   }
@@ -1268,12 +1176,6 @@ class TraderPlusMenu extends UIScriptedMenu
     return false;
   }
 
-  // void CloseSupportHandler()
-  // {
-  //   m_Background.Show(true);
-  //   m_SupportPanel.Show(false);
-  // }
-
   void ResetStockList()
   {
     if(m_StockScrollWidget)
@@ -1298,18 +1200,12 @@ class TraderPlusMenu extends UIScriptedMenu
   override bool OnClick (Widget w, int x, int y, int button)
   {
     super.OnClick(w,x,y,button);
-    #ifdef TRADERPLUSDEBUG
-    GetTraderPlusLogger().LogInfo("OnClick UserID:"+w.GetUserID());
-    #endif
     if(w.GetUserID() == 20062002)
     {
-      #ifdef TRADERPLUSDEBUG
-      GetTraderPlusLogger().LogInfo("OnClick Special list name:"+w.GetParent().GetName());
-      #endif
       int i,j;
       if(m_WidgetStockList.Find(w.GetParent(),i))
       {
-        if(m_HighLightProduct) m_HighLightProduct.Show(false);
+        if(m_HighLightProduct)m_HighLightProduct.Show(false);
         m_HighLightProduct = Widget.Cast(w.GetParent().FindAnyWidget("Highlight"));
         m_HighLightProduct.Show(true);
         m_StockListPosition = i;
@@ -1362,10 +1258,7 @@ class TraderPlusMenu extends UIScriptedMenu
       {
         ResetStockList();
         StockCategoryHandler();
-<<<<<<< HEAD
         LicenceCheck(GetTraderPlusClient().m_StockCategories.Get(m_StockCategories.GetCurrentItem()))
-=======
->>>>>>> af110d2551dadb184991aa5a17ae9a08bf71cdfa
         GetGame().GetCallQueue(CALL_CATEGORY_GUI).CallLater(PlayerCategoryHandler, 200);
         m_StockListPosition = -1;
         m_ProductInformation.Show(false);
@@ -1393,14 +1286,13 @@ class TraderPlusMenu extends UIScriptedMenu
       return true;
       break;
 
-      case m_BttnReset:ResetPlayerClothes();
+      case m_BttnReset:InitPlayerPreview();
       return true;
       break;
     }
     return false;
   }
 
-<<<<<<< HEAD
   void LicenceCheck(string categoryName)
   {
     if(GetBankAccount() && GetBankAccount().Licences){
@@ -1411,16 +1303,11 @@ class TraderPlusMenu extends UIScriptedMenu
     m_InformationText.SetText("");
   }
 
-=======
->>>>>>> af110d2551dadb184991aa5a17ae9a08bf71cdfa
   //hide player preview and show inventory panel
   void BackToInventoryHandler()
   {
     m_PanelPlayerPreview.Show(false);
     m_PanelInventory.Show(true);
-    #ifdef TRADERPLUSDEBUG
-    GetTraderPlusLogger().LogInfo("BackToInventoryHandler");
-    #endif
   }
 
   //look to see if previous product trade still exist so we keep showing it in the product information panel
@@ -1428,9 +1315,9 @@ class TraderPlusMenu extends UIScriptedMenu
   {
     if(state)
     {
-      for(int i=0;i<m_StockItemsNames.Count();i++)
+      for(int i=0;i<m_StockItems.Count();i++)
       {
-        if(m_StockItemsNames.Get(i)==productname && m_StockItemsStates.Get(i) == health)
+        if(m_StockItems[i].ClassName==productname && m_StockItems[i].Health == health)
         {
           return i;
         }
@@ -1438,9 +1325,9 @@ class TraderPlusMenu extends UIScriptedMenu
     }
     else
     {
-      for(int j=0;j<m_playersItemsClassName.Count();j++)
+      for(int j=0;j<m_PlayerItems.Count();j++)
       {
-        if(m_playersItemsClassName.Get(j)==productname && m_playersItemsHealth.Get(j).ToInt() == health)
+        if(m_PlayerItems[j].ClassName==productname && m_PlayerItems[j].Health == health)
         {
           return j;
         }
@@ -1469,42 +1356,46 @@ class TraderPlusMenu extends UIScriptedMenu
       else m_selectedRowStock = tempRow;
     }
 
-    UpdateItemPreview(m_StockItemsNames.Get(m_selectedRowStock));
+    string classname = m_StockItems[m_selectedRowStock].ClassName;
+    string category = GetTraderPlusClient().GetProductCategory(classname);
+    int    health    = m_StockItems[m_selectedRowStock].Health;
+
+    UpdateItemPreview(classname);
 
     //Show item health status
-    GetTextAndColorRegardingHealth(m_StockItemsStates.Get(m_selectedRowStock));
+    GetTextAndColorRegardingHealth(health);
 
-    int slotcount = TraderPlusHelper.GetItemSlotCount(m_StockItemsNames.Get(m_selectedRowStock));
+    int slotcount = TraderPlusHelper.GetItemSlotCount(classname);
     if(slotcount == 0)
     {
       m_SlotCountText.SetText("");
     }else m_SlotCountText.SetText("#tpm_slot"+ " " +slotcount.ToString());
 
     //Show quantity in stock
-    int StockQty = m_StockItemsQuantities.Get(m_selectedRowStock);
+    int stock = m_StockItems[m_selectedRowStock].Quantity;
 
     //Show sellprice of our item based on stock and qty desired
     int TradeQty, MaxStock;
-    int MaxItemQty = TraderPlusHelper.GetMaxItemQuantityClient(m_StockItemsNames.Get(m_selectedRowStock));
+    int MaxItemQty = TraderPlusHelper.GetMaxItemQuantityClient(classname);
     #ifdef TRADERPLUSDEBUG
 		GetTraderPlusLogger().LogInfo("Buy Product: maxitemqty:"+MaxItemQty.ToString());
 		#endif
 
-    int Price = CalculatePriceForThatItem(false,m_StockItemsNames.Get(m_selectedRowStock),StockQty,m_StockItemsStates.Get(m_selectedRowStock),MaxStock, TradeQty);
-    int SellPrice = CalculatePriceForThatItem(true,m_StockItemsNames.Get(m_selectedRowStock),StockQty,m_StockItemsStates.Get(m_selectedRowStock),MaxStock, TradeQty);
+    int Price = GetTraderPlusClient().CalculatePriceForThatItem(m_QtyMultiplier,false,category,classname,stock,health,MaxStock, TradeQty);
+    int SellPrice = GetTraderPlusClient().CalculatePriceForThatItem(m_QtyMultiplier,true,category,classname,stock,health,MaxStock, TradeQty);
     //We check for price overflow in case server owner use ruble or chinese currency with high values
-    if(Price == -2147483648)Price = -1;
+    if(Price > int.MAX)Price = -1;
     string StrPrice = TraderPlusHelper.IntToCurrencyString(Price, ",");
 
-    if(MaxStock == -1)StockQty = -1;
-    string stringStockQty = StockQty.ToString();
-    if(m_QtyMultiplier > StockQty && MaxStock != -1 || Price == -1 || Price == 0)
+    if(MaxStock == -1)stock = -1;
+    string strstock = stock.ToString();
+    if(m_QtyMultiplier > stock && MaxStock != -1 || Price == -1 || Price == 0)
     {
-      m_QuantityText.SetText("#tpm_stockqty"+ " " +stringStockQty);
+      m_QuantityText.SetText("#tpm_stockqty"+ " " +strstock);
       m_QuantityText.SetColor(ARGB(255,191,48,48));
-      if(StockQty == -1)
+      if(stock == -1)
       {
-        stringStockQty="∞";
+        strstock="∞";
         StrPrice = "Ø";
       }
       else
@@ -1515,9 +1406,9 @@ class TraderPlusMenu extends UIScriptedMenu
     }
     else
     {
-      if(StockQty == -1)stringStockQty="∞";
+      if(stock == -1)strstock="∞";
       m_InformationText.SetText("");
-      m_QuantityText.SetText("#tpm_stockqty"+ " " +stringStockQty);
+      m_QuantityText.SetText("#tpm_stockqty"+ " " +strstock);
       m_QuantityText.SetColor(ARGB(255,28,223,77));
       m_canTrade = true;
     }
@@ -1535,7 +1426,7 @@ class TraderPlusMenu extends UIScriptedMenu
       m_BuyPriceText.SetColor(ARGB(255,28,223,77));
     }
 
-    if(m_StockItemsNames.Get(m_selectedRowStock).Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount() && GetBankAccount().Licences.Find(m_StockItemsNames.Get(m_selectedRowStock)) != -1)
+    if(classname.Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount() && GetBankAccount().Licences.Find(classname) != -1)
     {
       m_InformationText.SetText("#tpm_already_bought");
       m_BuyPriceText.SetText("#tpm_buyprice"+ " " +StrPrice);
@@ -1558,13 +1449,13 @@ class TraderPlusMenu extends UIScriptedMenu
 
     //we define the current product shown so we can transmit it more easely if player wants to buy it
     m_CurrentProduct.TraderID  = TraderID;
-    m_CurrentProduct.ClassName = m_StockItemsNames.Get(m_selectedRowStock);
+    m_CurrentProduct.Category  = category;
+    m_CurrentProduct.ClassName = classname;
     m_CurrentProduct.Multiplier= m_QtyMultiplier;
     m_CurrentProduct.Quantity  = TradeQty;
     m_CurrentProduct.MaxStock  = MaxStock;
-    m_CurrentProduct.Health    = m_StockItemsStates.Get(m_selectedRowStock);
+    m_CurrentProduct.Health    = health;
     m_CurrentProduct.Price     = Price;
-    m_CurrentProduct.Position  = GetTraderPlusClient().GetProductPositionFromStock(m_StockItemsNames.Get(m_selectedRowStock),m_StockItemsStates.Get(m_selectedRowStock).ToString());
     m_CurrentProduct.TradMode  = TRADEMODE_BUY;
 
     if(m_IsPlayerPreviewEnable)
@@ -1579,7 +1470,7 @@ class TraderPlusMenu extends UIScriptedMenu
   void ResetProductPanel()
   {
     if ( m_previewItem )
-    GetGame().ObjectDelete( m_previewItem );
+        GetGame().ObjectDelete( m_previewItem );
     m_InformationText.SetText("");
     m_ProductInformation.Show(false);
   }
@@ -1592,7 +1483,7 @@ class TraderPlusMenu extends UIScriptedMenu
       m_SellMode = true;
       m_SellPriceText.Show(true);
       if(!GetTraderPlusConfigClient().EnableShowAllPrices)
-        m_BuyPriceText.Show(false);
+          m_BuyPriceText.Show(false);
     }
     else
     {
@@ -1600,7 +1491,7 @@ class TraderPlusMenu extends UIScriptedMenu
       m_SellMode = false;
       m_BuyPriceText.Show(true);
       if(!GetTraderPlusConfigClient().EnableShowAllPrices)
-        m_SellPriceText.Show(false);
+          m_SellPriceText.Show(false);
     }
 
 
@@ -1611,7 +1502,8 @@ class TraderPlusMenu extends UIScriptedMenu
   {
     SetTradeMode(TRADEMODE_SELL);
 
-    if(!m_ProductInformation.IsVisible())m_ProductInformation.Show(true);
+    if(!m_ProductInformation.IsVisible())
+        m_ProductInformation.Show(true);
 
     //m_ProductInformation.Show(true);
     m_selectedRowInventory = m_InventoryListPosition;
@@ -1628,39 +1520,39 @@ class TraderPlusMenu extends UIScriptedMenu
         m_selectedRowInventory = tempRow;
       }
     }
-    UpdateItemPreview(m_playersItemsClassName.Get(m_selectedRowInventory));
 
-    int slotcount = TraderPlusHelper.GetItemSlotCount(m_playersItemsClassName.Get(m_selectedRowInventory));
+    string classname = m_PlayerItems[m_selectedRowInventory].ClassName;
+    string category  = GetTraderPlusClient().GetProductCategory(classname);
+    int    health    = m_PlayerItems[m_selectedRowInventory].Health;
+    UpdateItemPreview(classname);
+
+    int slotcount = TraderPlusHelper.GetItemSlotCount(classname);
     if(slotcount == 0)
     {
       m_SlotCountText.SetText("");
     }else m_SlotCountText.SetText("#tpm_slot"+ " " +slotcount.ToString());
 
     //Show item health status
-    GetTextAndColorRegardingHealth(m_playersItemsHealth.Get(m_selectedRowInventory).ToInt());
+    GetTextAndColorRegardingHealth(health);
 
     //Show quantity in stock if exist
-    int ItemPositionInStock = GetTraderPlusClient().GetProductPositionFromStock(m_playersItemsClassName.Get(m_selectedRowInventory),m_playersItemsHealth.Get(m_selectedRowInventory));
-    int StockQty = 0;
+    int stock = 0;
 
     //if stock qty exist, we define our stock var
-    if(ItemPositionInStock != -1)
-    {
-      StockQty = GetTraderPlusClient().GetStockQtyFromPosition(ItemPositionInStock);
-    }
+    stock = GetTraderPlusClient().GetStockProductFromStock(category, classname,health);
 
     int ItemQty,TradeQty,MaxItemQty,MaxStock=-1;
-    ItemQty = m_playersItemsQuantity.Get(m_selectedRowInventory).ToInt();
-    MaxItemQty = TraderPlusHelper.GetMaxItemQuantityClient(m_playersItemsClassName.Get(m_selectedRowInventory));
+    ItemQty = m_PlayerItems[m_selectedRowInventory].Quantity;
+    MaxItemQty = TraderPlusHelper.GetMaxItemQuantityClient(classname);
     #ifdef TRADERPLUSDEBUG
 		GetTraderPlusLogger().LogInfo("Sell Product: maxitemqty:"+MaxItemQty.ToString());
 		#endif
 
     //We define the price based on StockQty and our TradeQty var
-    int Price = CalculatePriceForThatItem(TRADEMODE_SELL,m_playersItemsClassName.Get(m_selectedRowInventory),StockQty,m_playersItemsHealth.Get(m_selectedRowInventory).ToInt(),MaxStock, TradeQty);
-    int BuyPrice = CalculatePriceForThatItem(TRADEMODE_BUY,m_playersItemsClassName.Get(m_selectedRowInventory),StockQty,m_playersItemsHealth.Get(m_selectedRowInventory).ToInt(),MaxStock, TradeQty);
+    int Price = GetTraderPlusClient().CalculatePriceForThatItem(m_QtyMultiplier,TRADEMODE_SELL,category,classname,stock,health,MaxStock, TradeQty);
+    int BuyPrice = GetTraderPlusClient().CalculatePriceForThatItem(m_QtyMultiplier,TRADEMODE_BUY,category,classname,stock,health,MaxStock, TradeQty);
     //We check for price overflow in case server owner use ruble or chinese currency with high values
-    if(Price == -2147483648)Price = -1;
+    if(Price > int.MAX)Price = -1;
     string StrPrice = TraderPlusHelper.IntToCurrencyString(Price, ",");;
     if(Price == -1 || Price == 0)StrPrice = "Ø";
     m_SellPriceText.SetText("#tpm_sellprice"+ " " +StrPrice);
@@ -1678,11 +1570,11 @@ class TraderPlusMenu extends UIScriptedMenu
       case 2 : (MaxStock < StockQty + TradeQty && MaxStock != -1) => Stock is to high to accept more of that specific item and stock is not unlimited
       case 3 : (MaxStock == -1 && MaxItemQty!=ItemQty && TradeQty < 0) => Stock is unlimited and ItemQty != ItemMaxQty because TradeQty is set to maxqty
     */
-    if(Price == -1 || Price == 0 || TradeQty > ItemQty || (MaxStock < StockQty + m_QtyMultiplier && MaxStock != -1) || (MaxStock == -1 && MaxItemQty!=ItemQty && TradeQty < 0))
+    if(Price == -1 || Price == 0 || TradeQty > ItemQty || (MaxStock < stock + m_QtyMultiplier && MaxStock != -1) || (MaxStock == -1 && MaxItemQty!=ItemQty && TradeQty < 0))
     {
       if(Price == -1 || Price == 0)m_InformationText.SetText("#tpm_cant_trade_item");
       if(TradeQty > ItemQty)m_InformationText.SetText("#tpm_tradeqty_over_itemqty");
-      if(MaxStock < StockQty + m_QtyMultiplier && MaxStock != -1)m_InformationText.SetText("#tpm_tradeqty_over_stockqty");
+      if(MaxStock < stock + m_QtyMultiplier && MaxStock != -1)m_InformationText.SetText("#tpm_tradeqty_over_stockqty");
       if(MaxStock == -1 && MaxItemQty!=ItemQty && TradeQty < 0)m_InformationText.SetText("#tpm_tradeqty_over_itemqty");
       m_QuantityText.SetText("#tpm_totalqty"+ " " +ItemQty);
       m_QuantityText.SetColor(ARGB(255,191,48,48));
@@ -1698,7 +1590,7 @@ class TraderPlusMenu extends UIScriptedMenu
 
     if(m_QuantityMultiplier.GetNumItems() == 1)
     {
-      RefreshAndSetQuantityMultiplierInventory(m_playersItemsClassName.Get(m_selectedRowInventory),TradeQty, MaxItemQty, ItemQty,m_playersItemsCount.Get(m_selectedRowInventory).ToInt());
+      RefreshAndSetQuantityMultiplierInventory(classname,TradeQty, MaxItemQty, ItemQty,m_PlayerItems[m_selectedRowInventory].Count);
     }
 
     //we define the current product shown so we can transmit it more easely if player wants to sell it
@@ -1707,14 +1599,14 @@ class TraderPlusMenu extends UIScriptedMenu
 		#endif
 
     m_CurrentProduct.TraderID  = TraderID;
-    m_CurrentProduct.ClassName = m_playersItemsClassName.Get(m_selectedRowInventory);
+    m_CurrentProduct.Category  = category;
+    m_CurrentProduct.ClassName = classname;
     m_CurrentProduct.Multiplier= m_QtyMultiplier;
     m_CurrentProduct.Quantity  = TradeQty;
     if(m_QtyMultiplier > 1 && TradeQty == 0)m_CurrentProduct.Quantity = m_QtyMultiplier;
-    m_CurrentProduct.Health    = m_playersItemsHealth.Get(m_selectedRowInventory).ToInt();
+    m_CurrentProduct.Health    = health;
     m_CurrentProduct.Price     = Price;
     m_CurrentProduct.MaxStock  = MaxStock;
-    m_CurrentProduct.Position  = ItemPositionInStock;
     m_CurrentProduct.TradMode  = TRADEMODE_SELL;
     if(m_selectedCatInventory == 3){
       m_CurrentProduct.TradMode  = TRADEMODE_SELLVEHICLE;
@@ -1745,12 +1637,12 @@ class TraderPlusMenu extends UIScriptedMenu
     }
     if(m_canTrade)
     {
-      if(!m_playersItemsHasAttachments.Get(m_selectedRowInventory))
+      if(!m_PlayerItems[m_selectedRowInventory].HasAttachments)
       {
         m_InformationText.SetText("#tpm_empty_item_first");
         return;
       }
-      GetRPCManager().SendRPC("TraderPlus", "GetSellRequest",  new Param1<ref TraderPlusProduct>(m_CurrentProduct), true, NULL);
+      GetRPCManager().SendRPC("TraderPlus", "GetTradeRequest",  new Param1<ref TraderPlusProduct>(m_CurrentProduct), true, NULL);
       m_RequestTrade = true;
       m_canTrade = false;
       m_canTradeRequest = false;
@@ -1777,7 +1669,7 @@ class TraderPlusMenu extends UIScriptedMenu
     }
     if(m_canTrade)
     {
-      GetRPCManager().SendRPC("TraderPlus", "GetBuyRequest",  new Param1<ref TraderPlusProduct>(m_CurrentProduct), true, NULL);
+      GetRPCManager().SendRPC("TraderPlus", "GetTradeRequest",  new Param1<ref TraderPlusProduct>(m_CurrentProduct), true, NULL);
       m_RequestTrade = true;
       m_canTrade = false;
       m_canTradeRequest = false;
@@ -1800,8 +1692,6 @@ class TraderPlusMenu extends UIScriptedMenu
     TraderID = id;
     TraderPos= pos;
     GetRPCManager().SendRPC("TraderPlus", "GetStockRequestBasedOnID",  new Param1<Object>(m_Trader), true, NULL);
-    //m_LoadingTextInv.Show(true);
-    //m_LoadingTextStock.Show(true);
   }
 
   //once the trade reauest send, we're going to get a response afterward that will start this function based on the result
@@ -1853,31 +1743,21 @@ class TraderPlusMenu extends UIScriptedMenu
   //update the UI once we got the tradingresponse
   void UIUpdate()
   {
-    m_StockItemsNames.Clear();
-    m_StockItemsQuantities.Clear();
-    m_StockItemsStates.Clear();
-    m_StockItemsMaxStock.Clear();
-    m_playersItemsClassName.Clear();
-    m_playersItemsQuantity.Clear();
-    m_playersItemsHealth.Clear();
+    ResetStockItemsArrays();
+    ResetPlayerItemsArray();
     UIHandle();
   }
 
   //reset the stock items arrays
   void ResetStockItemsArrays()
   {
-    m_StockItemsNames.Clear();
-    m_StockItemsQuantities.Clear();
-    m_StockItemsStates.Clear();
+    m_StockItems.Clear();
   }
 
   //reset the inv items arrays
   void ResetPlayerItemsArray()
   {
-    m_playersItemsClassName.Clear();
-    m_playersItemsQuantity.Clear();
-    m_playersItemsHealth.Clear();
-    m_playersItemsHasAttachments.Clear();
+    m_PlayerItems.Clear();
   }
 
   //get the text and color based on the health
@@ -1961,7 +1841,7 @@ class TraderPlusMenu extends UIScriptedMenu
 			}
 
 			if ( m_previewItem )
-				GetGame().ObjectDelete( m_previewItem );
+				  GetGame().ObjectDelete( m_previewItem );
 
 			m_previewItem = EntityAI.Cast(GetGame().CreateObject( itemType, "0 0 0", true, false, true ));
       if(!m_previewItem)return;
@@ -1972,23 +1852,12 @@ class TraderPlusMenu extends UIScriptedMenu
       m_MainItemPreview.SetView( m_previewItem.GetViewIndex() );
 	}
 
-  //called when pressing the reset button in the player rpeview panel
-  void ResetPlayerClothes()
-  {
-    InitPlayerPreview();
-  }
-
   void DeletePlayerPreview()
   {
     if(m_PlayerPreview)
-    {
-      delete m_PlayerPreview;
-    }
-
+        delete m_PlayerPreview;
     if(m_previewPlayer)
-    {
-      GetGame().ObjectDelete(m_previewPlayer);
-    }
+        GetGame().ObjectDelete(m_previewPlayer);
   }
 
   //called when pressing the remove button in the player rpeview panel
@@ -2043,9 +1912,7 @@ class TraderPlusMenu extends UIScriptedMenu
     {
       EntityAI ent = m_previewPlayer.FindAttachmentBySlotName(TraderPlusHelper.playerAttachments[id]);
       if(ent)
-      {
-        GetGame().ObjectDelete(ent);
-      }
+          GetGame().ObjectDelete(ent);
       int slotId = InventorySlots.GetSlotIdFromString(TraderPlusHelper.playerAttachments[id]);
       m_previewPlayer.GetInventory().CreateAttachmentEx(m_CurrentProduct.ClassName, slotId);
     }
@@ -2053,9 +1920,7 @@ class TraderPlusMenu extends UIScriptedMenu
     {
       EntityAI current_entityInHand = m_previewPlayer.GetHumanInventory().GetEntityInHands();
       if(current_entityInHand)
-      {
-        GetGame().ObjectDelete(current_entityInHand);
-      }
+          GetGame().ObjectDelete(current_entityInHand);
       EntityAI entityInHand = m_previewPlayer.GetHumanInventory().CreateInHands(m_CurrentProduct.ClassName);
     }
 
@@ -2097,122 +1962,6 @@ class TraderPlusMenu extends UIScriptedMenu
 
     InsertPlayerToPreview();
 	}
-
-  //function that handle the price calculation, don't fuck with it. it's very important !!!
-  int CalculatePriceForThatItem(bool trademode, string classname, int stockqty, int state, out int maxstock, out int tradeqty)
-  {
-    #ifdef TRADERPLUSDEBUG
-    GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: name"+classname+"state:"+state.ToString());
-    #endif
-
-    classname.ToLower();
-
-    //We make sure that the item is accept under its state condttion
-    if((!GetTraderPlusConfigClient().AcceptWorn && state == 1) || (!GetTraderPlusConfigClient().AcceptDamaged && state == 2) || (!GetTraderPlusConfigClient().AcceptBadlyDamaged && state == 3) || state == 4)
-    {
-      #ifdef TRADERPLUSDEBUG
-      GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: state is not accepted");
-      #endif
-      return -1,
-    }
-
-    array<ref TraderPlusItem>traderPlusItems = GetTraderPlusClient().m_TraderPlusItems;
-    for(int i=0;i<traderPlusItems.Count();i++)
-    {
-      string traderItem = traderPlusItems.Get(i).ClassName;
-      traderItem.ToLower();
-      if( traderItem == classname)
-      {
-        if(!GetTraderPlusClient().IsCorrectCategory(traderPlusItems.Get(i).CategoryName))continue;
-        if(trademode == TRADEMODE_SELL)
-        {
-          tradeqty = traderPlusItems.Get(i).Quantity*m_QtyMultiplier;
-          maxstock = traderPlusItems.Get(i).MaxStock;
-          float coefficientSell = 1;
-          if(traderPlusItems.Get(i).Coeff > 0)coefficientSell=traderPlusItems.Get(i).Coeff;
-          int baseSellprice = traderPlusItems.Get(i).SellPrice;
-          #ifdef TRADERPLUSDEBUG
-          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: baseSellprice before formula:"+baseSellprice.ToString());
-          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: m_QtyMultiplier:"+m_QtyMultiplier.ToString());
-          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: tradeqty:"+tradeqty.ToString());
-          #endif
-          if( baseSellprice == -1)return baseSellprice;
-          if(maxstock == -1)return 1.0*baseSellprice*m_QtyMultiplier*(4-state)/4;
-          float sellprice = 0;
-          for(int ps=1;ps<m_QtyMultiplier+1;ps++)
-          {
-            int n = stockqty;
-            #ifdef TRADERPLUSDEBUG
-            GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: n:"+n.ToString());
-            #endif
-            if(n==0)n=1;
-            if(state != 0)
-            {
-              sellprice += Math.Pow(coefficientSell,(n - 1))*baseSellprice*(4-state)/4;
-            }
-            else
-            {
-              sellprice += Math.Pow(coefficientSell,(n - 1))*baseSellprice;
-            }
-            #ifdef TRADERPLUSDEBUG
-            GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: sellprice:"+sellprice.ToString());
-            #endif
-            stockqty++;
-          }
-          baseSellprice = sellprice;
-          if(baseSellprice==0)baseSellprice=1;
-          return baseSellprice;
-        }
-        else //buy - TRADEMODE_BUY
-        {
-          #ifdef TRADERPLUSDEBUG
-          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: looking for buyprice:");
-          #endif
-          tradeqty = traderPlusItems.Get(i).Quantity*m_QtyMultiplier;
-          maxstock = traderPlusItems.Get(i).MaxStock;
-          float coefficientBuy = 1;
-          if(traderPlusItems.Get(i).Coeff>0)coefficientBuy=traderPlusItems.Get(i).Coeff;
-          #ifdef TRADERPLUSDEBUG
-          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: BuyQty:"+traderPlusItems.Get(i).Quantity.ToString());
-          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: tradeqty:"+tradeqty.ToString());
-          #endif
-          int baseBuyprice = traderPlusItems.Get(i).BuyPrice;
-          if(baseBuyprice == -1)return baseBuyprice;
-          if(maxstock==-1)return 1.0*baseBuyprice*m_QtyMultiplier*(4-state)/4;
-          #ifdef TRADERPLUSDEBUG
-          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: baseBuyprice before formula:"+baseBuyprice.ToString());
-          #endif
-          float buyprice = 0;
-          for(int pb=1;pb<m_QtyMultiplier+1;pb++)
-          {
-            int m = stockqty;
-            #ifdef TRADERPLUSDEBUG
-            GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: m:"+m.ToString());
-            #endif
-            if(state != 0)
-            {
-              buyprice += Math.Pow(coefficientBuy,(m - 1))*baseBuyprice*(4-state)/4;
-            }
-            else
-            {
-              buyprice += Math.Pow(coefficientBuy,(m - 1))*baseBuyprice;
-            }
-            #ifdef TRADERPLUSDEBUG
-            GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: buyprice:"+buyprice.ToString());
-            #endif
-            stockqty++;
-          }
-          baseBuyprice = buyprice;
-          if(baseBuyprice==0)baseBuyprice=1;
-          #ifdef TRADERPLUSDEBUG
-          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: baseBuyprice after formula:"+baseBuyprice.ToString());
-          #endif
-          return baseBuyprice;
-        }
-      }
-    }
-    return 0;
-  }
 
   //Get player's money based on the accepted currencies by the trader
   int GetPlayerMoney()
@@ -2289,9 +2038,9 @@ class TraderPlusMenu extends UIScriptedMenu
     GetGame().GetMission().PlayerControlEnable(false);
 		GetGame().GetInput().ResetGameFocus();
     if ( m_previewItem )
-      GetGame().ObjectDelete( m_previewItem );
+        GetGame().ObjectDelete( m_previewItem );
     if (m_previewPlayer)
-      GetGame().ObjectDelete( m_previewPlayer );
+        GetGame().ObjectDelete( m_previewPlayer );
 		Close();
 	}
 }

@@ -4,7 +4,7 @@ modded class TrapBase
 	   {
         if (player)
         {
-            if (player.IsInsideSZ.SZStatut == true)
+            if (player.GetSafeZoneStatus() == SZ_IN_SAFEZONE)
                return;
         }
         super.StartActivate(player);

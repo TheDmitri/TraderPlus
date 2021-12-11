@@ -1,331 +1,363 @@
 class TraderPlusClient
 {
-	ref TraderPlusStock m_TraderStock;
-	ref array<ref TraderPlusCategory>m_TraderCategories;
-	ref array<ref TraderPlusItem>m_TraderPlusItems;
-	ref array<string> m_StockCategories;
+	ref map<string, ref map<string, ref StockItem>> m_TraderStock;
+	ref TraderPlusCategories m_TraderPlusCategories;
+	ref MapTraderPlusItems m_TraderPlusItems;
+	ref MapTraderPlusItems m_AllTraderPlusItems;
+	ref TStringArray m_StockCategories;
+
+	string m_lastTradeCategory = "";
 
 	bool EnableStockAllCategoryForID;
-
-	ref TraderPlusPriceSettings m_temppriceconfig;
 
 	bool m_StockRequest;
 
 	void TraderPlusClient()
 	{
-		m_TraderStock      = new TraderPlusStock;
-		m_TraderCategories = new array<ref TraderPlusCategory>;
-		m_TraderPlusItems  = new array<ref TraderPlusItem>;
-		m_StockCategories  = new array<string>;
-		m_temppriceconfig  = new  TraderPlusPriceSettings;
+		m_TraderStock      = new map<string, ref map<string, ref StockItem>>;
+		m_TraderPlusCategories = new TraderPlusCategories;
+		m_TraderPlusItems  = new MapTraderPlusItems;
+		m_AllTraderPlusItems = new MapTraderPlusItems;
+		m_StockCategories  = new TStringArray;
   }
 
-	int GetItemInStockFromCategory(int pos, out array<string> m_StockItemsNames,out array<int>m_StockItemsQuantities,out array<int>m_StockItemsStates, out array<int>m_StockItemsMaxStock, bool showall = false, string filter = "")
+	int GetItemInStockFromCategory(int index, out  out array<ref TraderPlusArticle>stockItems, bool showall = false, string filter = "")
 	{
 		filter.ToLower();
-		m_TraderPlusItems.Clear();
-		if(pos == 0 && GetTraderPlusConfigClient().EnableStockAllCategory && EnableStockAllCategoryForID){
+		bool skip = false;
+		if(index == 0 && GetTraderPlusConfigClient().EnableStockAllCategory && EnableStockAllCategoryForID){
 			GetTraderPlusItemsListFromAllCategory(m_StockCategories);
-		}else GetTraderPlusItemsListFromCategory(m_StockCategories.Get(pos));
+		}else GetTraderPlusItemsListFromCategory(m_StockCategories[index]);
 
-		#ifdef TRADERPLUSDEBUG
-		GetTraderPlusLogger().LogInfo("GetItemInStockFromCategory: TraderPlusItems.Count:"+m_TraderPlusItems.Count().ToString() + "maxstock.count"+m_StockItemsMaxStock.Count().ToString());
-		#endif
+		stockItems.Clear();
 
-		m_StockItemsNames.Clear();
-		m_StockItemsQuantities.Clear();
-		m_StockItemsStates.Clear();
-		m_StockItemsMaxStock.Clear();
-
-		for(int i=0;i<m_TraderPlusItems.Count();i++)
+		MapTraderPlusItems ttraderPlusItems = new MapTraderPlusItems;
+		foreach(string tcategory, array<ref TraderPlusItem> products: m_TraderPlusItems.traderPlusItems)
 		{
-			bool skip = false;
-			#ifdef TRADERPLUSDEBUG
-			GetTraderPlusLogger().LogInfo("GetItemInStockFromCategory: TraderPlusStock:"+m_TraderStock.TraderPlusItems.Count());
-			#endif
-			for(int j = 0 ; j<m_TraderStock.TraderPlusItems.Count();j++)
+			string cat = tcategory;
+			array<ref TraderPlusItem> tproducts = new array<ref TraderPlusItem>;
+			TraderPlusCopyMap<array<ref TraderPlusItem>>.CopyMap(products, tproducts);
+			ttraderPlusItems.traderPlusItems.Insert(cat, tproducts);
+		}
+
+		foreach(string category, array<ref TraderPlusItem> ttproducts: ttraderPlusItems.traderPlusItems)
+		{
+			if(!ttproducts || ttproducts.Count() == 0)continue;
+			foreach(TraderPlusItem traderPlusItem: ttproducts)
 			{
-				string str = m_TraderStock.TraderPlusItems.Get(j);
-				string token[3];
-				int result = str.ParseString(token);
-				if(TraderPlusHelper.Compare2String(token[0],m_TraderPlusItems.Get(i).ClassName) && TraderPlusHelper.CanAddProductToList(filter, m_TraderPlusItems.Get(i).ClassName))
+				#ifdef TRADERPLUSDEBUG
+				GetTraderPlusLogger().LogInfo("GetItemInStockFromCategory: "+traderPlusItem.ClassName);
+				#endif
+				TraderPlusArticle product = new TraderPlusArticle;
+				string lowClassName = traderPlusItem.ClassName;
+				lowClassName.ToLower();
+				if(m_TraderStock[category] && m_TraderStock[category][lowClassName] && TraderPlusHelper.CanAddProductToList(filter, traderPlusItem.ClassName))
 				{
-						#ifdef TRADERPLUSDEBUG
-					  GetTraderPlusLogger().LogInfo("GetItemInStockFromCategory: TraderPlusItems["+j.ToString()+"] - classname:"+token[0]);
-					  #endif
-						m_StockItemsNames.Insert(token[0]);
-						m_StockItemsQuantities.Insert(token[1].ToInt());
-						m_StockItemsStates.Insert(token[2].ToInt());
-						m_StockItemsMaxStock.Insert(m_TraderPlusItems.Get(i).MaxStock);
-						skip = true;
-						continue;
+						for(int h=0;h<4;h++)
+						{
+							if(m_TraderStock[category][lowClassName].Health.Contains(h))
+							{
+								if(!m_TraderStock[category][lowClassName].Health[h])continue;
+								TraderPlusArticle tproduct = new TraderPlusArticle;
+								tproduct.AddStockItems(category,traderPlusItem.ClassName,m_TraderStock[category][lowClassName].Health[h],h,traderPlusItem.MaxStock);
+								stockItems.Insert(tproduct);
+								skip = true;
+							}
+						}
+				}
+				if(!skip && traderPlusItem.MaxStock == TRADEMODE_UNLIMITED && TraderPlusHelper.CanAddProductToList(filter, traderPlusItem.ClassName))
+				{
+					product.AddStockItems(category,traderPlusItem.ClassName,0,0,traderPlusItem.MaxStock);
+					stockItems.Insert(tproduct);
+					skip = true;
+				}
+				if(!skip && showall  && TraderPlusHelper.CanAddProductToList(filter, traderPlusItem.ClassName))
+				{
+					product.AddStockItems(category,traderPlusItem.ClassName,0,0,traderPlusItem.MaxStock);
+					stockItems.Insert(tproduct);
 				}
 			}
-			if(m_TraderPlusItems.Get(i).MaxStock == -1 && !skip && TraderPlusHelper.CanAddProductToList(filter, m_TraderPlusItems.Get(i).ClassName))
-			{
-				#ifdef TRADERPLUSDEBUG
-				GetTraderPlusLogger().LogInfo("m_TraderPlusItems.Get(i).MaxStock == -1");
-				#endif
-				m_StockItemsNames.Insert(m_TraderPlusItems.Get(i).ClassName);
-				m_StockItemsQuantities.Insert(0);
-				m_StockItemsStates.Insert(0);
-				m_StockItemsMaxStock.Insert(m_TraderPlusItems.Get(i).MaxStock);
-				skip = true;
-			}
-			if(showall && !skip && TraderPlusHelper.CanAddProductToList(filter, m_TraderPlusItems.Get(i).ClassName))
-			{
-				#ifdef TRADERPLUSDEBUG
-				GetTraderPlusLogger().LogInfo("GetItemInStockFromCategory: showall:");
-				#endif
-				m_StockItemsNames.Insert(m_TraderPlusItems.Get(i).ClassName);
-				m_StockItemsQuantities.Insert(0);
-				m_StockItemsStates.Insert(0);
-				m_StockItemsMaxStock.Insert(m_TraderPlusItems.Get(i).MaxStock);
-			}
 		}
-		return m_StockItemsNames.Count();
+		TraderPlusJsonLoader<array<ref TraderPlusArticle>>.SaveToFile(TRADERPLUS_CONFIG_DIR_SERVER + "stockitems.json", stockItems);
+		return stockItems.Count();
 	}
 
-	int GetPlayerItemsFromCategory(int pos, out array<string> m_playersItemsClassName, out array<string>m_playersItemsCount, out array<string>m_playersItemsQuantity,out array<string>m_playersItemsHealth, out array<bool>m_playersItemsHasAttachments, string filter = "")
+	//function that handle the price calculation, don't fuck with it. it's very important !!!
+  int CalculatePriceForThatItem(int qtyMultiplier, bool trademode, string category, string classname, int stockqty, int state, out int maxstock, out int tradeqty)
+  {
+    #ifdef TRADERPLUSDEBUG
+    GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: name"+classname+"state:"+state.ToString());
+    #endif
+
+    classname.ToLower();
+
+    //We make sure that the item is accept under its state condttion
+    if((!GetTraderPlusConfigClient().AcceptWorn && state == 1) || (!GetTraderPlusConfigClient().AcceptDamaged && state == 2) || (!GetTraderPlusConfigClient().AcceptBadlyDamaged && state == 3) || state == 4)
+    {
+      #ifdef TRADERPLUSDEBUG
+      GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: state is not accepted");
+      #endif
+      return -1,
+    }
+
+		if(!m_TraderPlusItems.traderPlusItems || !m_TraderPlusItems.traderPlusItems[category] || m_TraderPlusItems.traderPlusItems[category].Count()< 1)return -1;
+    foreach(TraderPlusItem tpItem: m_TraderPlusItems.traderPlusItems[category])
+    {
+      string traderItem = tpItem.ClassName;
+      traderItem.ToLower();
+      if( traderItem == classname)
+      {
+        //if(!GetTraderPlusClient().IsCorrectCategory(tpItem.CategoryName))continue;
+        if(trademode == TRADEMODE_SELL)
+        {
+          tradeqty = tpItem.Quantity*qtyMultiplier;
+          maxstock = tpItem.MaxStock;
+          float coefficientSell = 1;
+          if(tpItem.Coeff > 0)coefficientSell=tpItem.Coeff;
+          int baseSellprice = tpItem.SellPrice;
+          #ifdef TRADERPLUSDEBUG
+          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: baseSellprice before formula:"+baseSellprice.ToString());
+          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: qtyMultiplier:"+qtyMultiplier.ToString());
+          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: tradeqty:"+tradeqty.ToString());
+          #endif
+          if( baseSellprice == -1)return baseSellprice;
+          if(maxstock == -1)return 1.0*baseSellprice*qtyMultiplier*(4-state)/4;
+          float sellprice = 0;
+          for(int ps=1;ps<qtyMultiplier+1;ps++)
+          {
+            int n = stockqty;
+            #ifdef TRADERPLUSDEBUG
+            GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: n:"+n.ToString());
+            #endif
+            if(n==0)n=1;
+            if(state != 0)
+            {
+              sellprice += Math.Pow(coefficientSell,(n - 1))*baseSellprice*(4-state)/4;
+            }
+            else
+            {
+              sellprice += Math.Pow(coefficientSell,(n - 1))*baseSellprice;
+            }
+            #ifdef TRADERPLUSDEBUG
+            GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: sellprice:"+sellprice.ToString());
+            #endif
+            stockqty++;
+          }
+          baseSellprice = sellprice;
+          if(baseSellprice==0)baseSellprice=1;
+          return baseSellprice;
+        }
+        else //buy - TRADEMODE_BUY
+        {
+          #ifdef TRADERPLUSDEBUG
+          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: looking for buyprice:");
+          #endif
+          tradeqty = tpItem.Quantity*qtyMultiplier;
+          maxstock = tpItem.MaxStock;
+          float coefficientBuy = 1;
+          if(tpItem.Coeff>0)coefficientBuy=tpItem.Coeff;
+          #ifdef TRADERPLUSDEBUG
+          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: BuyQty:"+tpItem.Quantity.ToString());
+          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: tradeqty:"+tradeqty.ToString());
+          #endif
+          int baseBuyprice = tpItem.BuyPrice;
+          if(baseBuyprice == -1)return baseBuyprice;
+          if(maxstock==-1)return 1.0*baseBuyprice*qtyMultiplier*(4-state)/4;
+          #ifdef TRADERPLUSDEBUG
+          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: baseBuyprice before formula:"+baseBuyprice.ToString());
+          #endif
+          float buyprice = 0;
+          for(int pb=1;pb<qtyMultiplier+1;pb++)
+          {
+            int m = stockqty;
+            #ifdef TRADERPLUSDEBUG
+            GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: m:"+m.ToString());
+            #endif
+            if(state != 0)
+            {
+              buyprice += Math.Pow(coefficientBuy,(m - 1))*baseBuyprice*(4-state)/4;
+            }
+            else
+            {
+              buyprice += Math.Pow(coefficientBuy,(m - 1))*baseBuyprice;
+            }
+            #ifdef TRADERPLUSDEBUG
+            GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: buyprice:"+buyprice.ToString());
+            #endif
+            stockqty++;
+          }
+          baseBuyprice = buyprice;
+          if(baseBuyprice==0)baseBuyprice=1;
+          #ifdef TRADERPLUSDEBUG
+          GetTraderPlusLogger().LogInfo("CalculatePriceForThatItem: baseBuyprice after formula:"+baseBuyprice.ToString());
+          #endif
+          return baseBuyprice;
+        }
+      }
+    }
+    return 0;
+  }
+
+	int GetPlayerItemsFromCategory(int pos, out  out array<ref TraderPlusArticle>m_PlayerItems, string filter = "")
 	{
 		filter.ToLower();
 		PlayerBase player = PlayerBase.Cast(GetGame().GetPlayer());
 		if(!player)return 0;
 
-		if(pos == 2)
+		if(pos == TraderPlusInventoryCategory.LICENCES)
 		{
-			m_playersItemsClassName.Clear();
-			m_playersItemsCount.Clear();
-			m_playersItemsQuantity.Clear();
-			m_playersItemsHealth.Clear();
-			m_playersItemsHasAttachments.Clear();
+			m_PlayerItems.Clear();
 
 			for(int li=0;li<GetBankAccount().Licences.Count();li++)
       {
-        m_playersItemsClassName.Insert(GetBankAccount().Licences[li]);
-				m_playersItemsQuantity.Insert("");
-				m_playersItemsCount.Insert("1");
-				m_playersItemsHealth.Insert("");
-				m_playersItemsHasAttachments.Insert(false);
+				TraderPlusArticle lproduct = new TraderPlusArticle;
+				lproduct.AddPlayerItems("licence_section",GetBankAccount().Licences[li],1,0,0,false);
+				m_PlayerItems.Insert(lproduct);
       }
-			return m_playersItemsClassName.Count();
+			return m_PlayerItems.Count();
 		}
 
-		if(pos == 3)
+		if(pos == TraderPlusInventoryCategory.VEHICLES)
 		{
-			m_playersItemsClassName.Clear();
-			m_playersItemsCount.Clear();
-			m_playersItemsQuantity.Clear();
-			m_playersItemsHealth.Clear();
-			m_playersItemsHasAttachments.Clear();
+			m_PlayerItems.Clear();
 
 			for(int lv=0;lv<GetGarageCore().m_VehiclesName.Count();lv++)
 			{
-				m_playersItemsClassName.Insert(GetGarageCore().m_VehiclesName[lv]);
-				m_playersItemsQuantity.Insert("1");
-				m_playersItemsCount.Insert("1");
-				m_playersItemsHealth.Insert(GetGarageCore().m_VehiclesHealth[lv].ToString());
-				m_playersItemsHasAttachments.Insert(true);
+				TraderPlusArticle vproduct = new TraderPlusArticle;
+				vproduct.AddPlayerItems("vehicle_section",GetGarageCore().m_VehiclesName[lv],1,1,GetGarageCore().m_VehiclesHealth[lv],true);
+				m_PlayerItems.Insert(vproduct);
 			}
-			return m_playersItemsClassName.Count();
+			return m_PlayerItems.Count();
 		}
 
-		bool state = TraderPlusHelper.GetPlayersItems(player,m_playersItemsClassName, m_playersItemsCount, m_playersItemsQuantity, m_playersItemsHealth,m_playersItemsHasAttachments,filter);
+		bool state = TraderPlusHelper.GetPlayersItems(player,m_PlayerItems,filter);
 		if(state)
 		{
-			if(pos == 1)
-			{
-				return m_playersItemsClassName.Count();
-			}
-			else
-			{
-				// #ifdef TRADERPLUSDEBUG
-				// GetTraderPlusLogger().LogInfo("GetItemInStockFromCategory: TraderPlusItems.Count:"+m_TraderPlusItems.Count().ToString());
-				// #endif
-				TStringArray Names = new TStringArray;
-				TStringArray Counts = new TStringArray;
-				TStringArray Qties = new TStringArray;
-				TStringArray Healths = new TStringArray;
-				TBoolArray   Attachs = new TBoolArray;
+			if(pos == TraderPlusInventoryCategory.ALL)
+				return m_PlayerItems.Count();
 
-				for(int j = 0 ; j<m_playersItemsClassName.Count();j++)
+			array<ref TraderPlusArticle> tPlayerItems = new array<ref TraderPlusArticle>;
+			for(int j = 0 ; j<m_PlayerItems.Count();j++)
+			{
+				string playerItem = m_PlayerItems[j].ClassName;
+				playerItem.ToLower();
+
+				foreach(string category, array<ref TraderPlusItem> tpItems: m_TraderPlusItems.traderPlusItems)
 				{
-					string playerItem = m_playersItemsClassName[j];
-					playerItem.ToLower();
-					// if(!EnableStockAllCategoryForID)
-					// {
-					// 	GetTraderPlusItemsListFromAllCategory(m_StockCategories);
-					// }
-					for(int i=0;i<m_TraderPlusItems.Count();i++)
+					if(!tpItems || tpItems.Count() == 0)continue;
+					foreach(TraderPlusItem traderPlusItem: tpItems)
 					{
-						string traderItem = m_TraderPlusItems.Get(i).ClassName;
-						string categoryName=m_TraderPlusItems.Get(i).CategoryName;
+						string traderItem = traderPlusItem.ClassName;
 						traderItem.ToLower();
-						// #ifdef TRADERPLUSDEBUG
-						// GetTraderPlusLogger().LogInfo("GetItemInStockFromCategory: TraderPlusItems_classname"+m_TraderPlusItems.Get(i).ClassName+" m_playersItemsClassName:"+m_playersItemsClassName.Get(j));
-						// #endif
-
-						if(playerItem == traderItem && m_StockCategories.Find(categoryName) != -1 && m_TraderPlusItems.Get(i).SellPrice != -1)
+						if(playerItem == traderItem && traderPlusItem.SellPrice != TRADEMODE_NO_TRADE)
 						{
-							Names.Insert(m_playersItemsClassName.Get(j));
-							Counts.Insert(m_playersItemsCount.Get(j));
-							Qties.Insert(m_playersItemsQuantity.Get(j));
-							Healths.Insert(m_playersItemsHealth.Get(j));
-							Attachs.Insert(m_playersItemsHasAttachments.Get(j));
+							TraderPlusArticle pproduct = new TraderPlusArticle;
+							pproduct.AddPlayerItems(category,m_PlayerItems[j].ClassName,m_PlayerItems[j].Count,m_PlayerItems[j].Quantity,m_PlayerItems[j].Health,m_PlayerItems[j].HasAttachments);
+							tPlayerItems.Insert(pproduct);
 						}
 					}
 				}
-
-				m_playersItemsClassName.Clear();
-				m_playersItemsCount.Clear();
-				m_playersItemsQuantity.Clear();
-				m_playersItemsHealth.Clear();
-				m_playersItemsHasAttachments.Clear();
-
-				m_playersItemsClassName = Names;
-				m_playersItemsCount     = Counts;
-				m_playersItemsQuantity  = Qties;
-				m_playersItemsHealth    = Healths;
-				m_playersItemsHasAttachments = Attachs;
-
-				CombinedSpecificItems(m_playersItemsClassName,m_playersItemsCount, m_playersItemsQuantity,m_playersItemsHealth,m_playersItemsHasAttachments);
 			}
-			return m_playersItemsClassName.Count();
+
+			m_PlayerItems.Clear();
+			m_PlayerItems = tPlayerItems;
+
+			CombinedSpecificItems(m_PlayerItems);
+			return m_PlayerItems.Count();
 		}
 		return 0;
 	}
 
-	void CombinedSpecificItems(out array<string> m_playersItemsClassName, out array<string>m_playersItemsCount, out array<string>m_playersItemsQuantity,out array<string>m_playersItemsHealth, out array<bool>m_playersItemsHasAttachments)
+	void CombinedSpecificItems(out array<ref TraderPlusArticle> m_PlayerItems)
 	{
-		// #ifdef TRADERPLUSDEBUG
-		// GetTraderPlusLogger().LogInfo("CombinedSpecificItems + ITEMCLASSNAMECOUNT:"+m_playersItemsClassName.Count().ToString());
-		// #endif
-		TStringArray Names = new TStringArray;
-		TStringArray Counts = new TStringArray;
-		TStringArray Qties = new TStringArray;
-		TStringArray Healths = new TStringArray;
-		TBoolArray   Attachs = new TBoolArray;
+		array<ref TraderPlusArticle> tPlayerItems = new array<ref TraderPlusArticle>;
 
-		while(m_playersItemsClassName.Count()>0)
+		while(m_PlayerItems.Count()>0)
 		{
-			#ifdef TRADERPLUSDEBUG
-			GetTraderPlusLogger().LogInfo("CombinedSpecificItems + ITEMCLASSNAMECOUNT:"+m_playersItemsClassName.Count().ToString());
-			#endif
-			string name = m_playersItemsClassName[0];
-			string count = m_playersItemsCount[0];
-			string qty = m_playersItemsQuantity[0];
-			string health = m_playersItemsHealth[0];
-			bool   hasattch = m_playersItemsHasAttachments[0];
+			string category = m_PlayerItems[0].Category;
+			string name = m_PlayerItems[0].ClassName;
+			int count = m_PlayerItems[0].Count;
+			int qty = m_PlayerItems[0].Quantity;
+			int health = m_PlayerItems[0].Health;
+			bool hasattch = m_PlayerItems[0].HasAttachments;
 
 			TIntArray SpecificItemsPositions = new TIntArray;
 
-			m_playersItemsClassName.RemoveOrdered(0);
-			m_playersItemsHealth.RemoveOrdered(0);
-			m_playersItemsCount.RemoveOrdered(0);
-			m_playersItemsQuantity.RemoveOrdered(0);
-			m_playersItemsHasAttachments.RemoveOrdered(0);
+			m_PlayerItems.RemoveOrdered(0);
 
 			int countSpecificItem = 0;
-			for(int i=0;i<m_playersItemsClassName.Count();i++)
+
+			for(int i=0;i<m_PlayerItems.Count();i++)
 			{
-				if(m_playersItemsClassName[i]==name && m_playersItemsHealth[i]==health)
-				{
+				if(m_PlayerItems[i].ClassName==name && m_PlayerItems[i].Health==health)
 					countSpecificItem++;
-				}
 			}
 
 			int j=0;
 			while(countSpecificItem!=0)
 			{
-				if(m_playersItemsClassName[j]==name && m_playersItemsHealth[j]==health)
+				if(m_PlayerItems[j].ClassName==name && m_PlayerItems[j].Health==health)
 				{
-					#ifdef TRADERPLUSDEBUG
-					GetTraderPlusLogger().LogInfo("BEFORE m_playersItemsClassName[j]"+m_playersItemsClassName[j]+" count:"+count+"qty="+qty);
-					#endif
-					count = (count.ToInt() + m_playersItemsCount[j].ToInt()).ToString();
-					qty = (qty.ToInt() + m_playersItemsQuantity[j].ToInt()).ToString();
-					#ifdef TRADERPLUSDEBUG
-					GetTraderPlusLogger().LogInfo("AFTER m_playersItemsClassName[j]"+m_playersItemsClassName[j]+" count:"+count+"qty="+qty);
-					#endif
-
-					m_playersItemsClassName.RemoveOrdered(j);
-					m_playersItemsHealth.RemoveOrdered(j);
-					m_playersItemsCount.RemoveOrdered(j);
-					m_playersItemsQuantity.RemoveOrdered(j);
-					m_playersItemsHasAttachments.RemoveOrdered(j);
+					count += m_PlayerItems[j].Count;
+					qty += m_PlayerItems[j].Quantity;
+					m_PlayerItems.RemoveOrdered(j);
 					countSpecificItem--;
 					j=0;
-				}else
-				{
-					j++;
+					continue;
 				}
+				j++;
 			}
 
-			Names.Insert(name);
-			Counts.Insert(count);
-			Qties.Insert(qty);
-			Healths.Insert(health);
-			Attachs.Insert(hasattch);
+			TraderPlusArticle pproduct = new TraderPlusArticle;
+			pproduct.AddPlayerItems(category,name,count,qty,health,hasattch);
+			tPlayerItems.Insert(pproduct);
 		}
 
-		m_playersItemsClassName.Clear();
-		m_playersItemsCount.Clear();
-		m_playersItemsQuantity.Clear();
-		m_playersItemsHealth.Clear();
-		m_playersItemsHasAttachments.Clear();
-
-		m_playersItemsClassName = Names;
-		m_playersItemsCount     = Counts;
-		m_playersItemsQuantity  = Qties;
-		m_playersItemsHealth    = Healths;
-		m_playersItemsHasAttachments = Attachs;
+		m_PlayerItems.Clear();
+		m_PlayerItems = tPlayerItems;
 	}
 
 	//To try to be efficient on the server, we try to make its life easy by giving to the server the position of the product, to help find it on server stock
-	int GetProductPositionFromStock(string name, string states)
+	int GetStockProductFromStock(string category, string name, int health)
 	{
-		if(GetTraderPlusConfigClient().StoreOnlyToPristineState)states = "0";
-		for(int j = 0 ; j<m_TraderStock.TraderPlusItems.Count();j++)
-		{
-			string line = m_TraderStock.TraderPlusItems.Get(j);
-			TStringArray strs = new TStringArray;
-			line.Split( " ", strs );
-			if(strs[0]==name && strs[2]==states)
-			{
-				return j;
-			}
-		}
-		return -1;
+		name.ToLower();
+		if(GetTraderPlusConfigClient().StoreOnlyToPristineState)health = 0;
+		if(m_TraderStock[category] && m_TraderStock[category][name])
+			return m_TraderStock[category][name].Health[health];
+
+		return 0;
 	}
 
-	int GetStockQtyFromPosition(int pos)
+	string GetProductCategory(string classname)
 	{
-		if(m_TraderStock)
+		foreach(string category, array<ref TraderPlusItem> tpItems: m_TraderPlusItems.traderPlusItems)
 		{
-			string line = m_TraderStock.TraderPlusItems.Get(pos);
-			TStringArray strs = new TStringArray;
-			line.Split( " ", strs );
-			return strs[1].ToInt();
+			if(!tpItems || tpItems.Count() == 0)continue;
+			foreach(TraderPlusItem traderPlusItem: tpItems)
+			{
+				if(traderPlusItem.ClassName == classname)
+				{
+					return category;
+				}
+			}
 		}
-		return -1;
+
+		return "";
 	}
 
 	void ResetPriceConfig()
 	{
-		m_TraderCategories.Clear();
+		m_TraderPlusCategories.traderCategories.Clear();
 	}
 
 	int GetCategoriesFromID(int id)
 	{
 		m_StockCategories.Clear();
-		EnableStockAllCategoryForID = GetTraderPlusConfigClient().EnableStockAllCategoryForIDs.Get(id);
-		string str = GetTraderPlusConfigClient().IDsCategories.Get(id);
+		EnableStockAllCategoryForID = GetTraderPlusConfigClient().EnableStockAllCategoryForIDs[id];
+		string str = GetTraderPlusConfigClient().IDsCategories[id];
 		TStringArray strs = new TStringArray;
 		str.Split(",",strs);
 		int count = strs.Count();
-		// #ifdef TRADERPLUSDEBUG
-		// GetTraderPlusLogger().LogInfo("GetCategoriesFromID: "+id.ToString()+"count: "+count.ToString());
-		// #endif
 		for(int i=0;i<count;i++)
 		{
 			m_StockCategories.Insert(strs[i]);
@@ -335,105 +367,62 @@ class TraderPlusClient
 
 	bool IsCorrectCategory(string categoryname)
 	{
-		for(int i=0;i<m_StockCategories.Count();i++)
-		{
-			if(m_StockCategories[i] == categoryname)
-			{
-				return true;
-			}
-		}
-		return false;
+		return m_StockCategories.Find(categoryname) != -1;
 	}
 
 	void GetTraderPlusItemsListFromCategory(string categoryname)
 	{
+		#ifdef TRADERPLUSDEBUG
+		GetTraderPlusLogger().LogInfo("GetTraderPlusItemsListFromCategory");
+		#endif
+
 		//In some cases we don't want to clear the items, that's why we need that reset condition
-		m_TraderPlusItems.Clear();
+		m_TraderPlusItems.traderPlusItems.Clear();
 
 		if(GetBankAccount() && GetBankAccount().Licences)
 		{
-<<<<<<< HEAD
 			if(categoryname.Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount().Licences.Find(categoryname) == -1)
 				return;
-=======
-			if(categoryname.Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount().Licences.Find(categoryname) != -1)
-				{
-					return;
-				}
->>>>>>> af110d2551dadb184991aa5a17ae9a08bf71cdfa
 		}
 
-		for(int i=0; i<m_TraderCategories.Count();i++)
+		array<ref TraderPlusItem> tpItems = new array<ref TraderPlusItem>;
+		m_TraderPlusItems.traderPlusItems.Set(categoryname, new array<ref TraderPlusItem>);
+		if(!m_AllTraderPlusItems.traderPlusItems.Find(categoryname,tpItems))return;
+		foreach(TraderPlusItem tpItem: tpItems)
 		{
-			if(m_TraderCategories.Get(i).CategoryName == categoryname)
-			{
-				for(int j=0;j<m_TraderCategories.Get(i).Products.Count();j++)
-				{
-					string str = m_TraderCategories.Get(i).Products.Get(j);
-					TStringArray strs = new TStringArray;
-					str.Split( ",", strs );
-					float sellprice = strs[5].ToFloat();
-					float tradeqty = strs[3].ToFloat();
-					int   maxqty = TraderPlusHelper.GetMaxItemQuantityClient(strs[0]);
-					if( sellprice < 1.0 && sellprice != -1.0)
-					{
-						sellprice = strs[4].ToFloat() * strs[5].ToFloat();
-					}
-					tradeqty = CalculateTradeQty(strs[0],tradeqty,maxqty);
-					// #ifdef TRADERPLUSDEBUG
-					// GetTraderPlusLogger().LogInfo("GetTraderPlusItemsListFromCategory: sellprice"+sellprice.ToString()+" buyprice:"+strs[4] + "tradeqty:"+tradeqty.ToString()+" maxstock"+strs[2]);
-					// #endif
-					m_TraderPlusItems.Insert(new TraderPlusItem(categoryname,strs[0],strs[1].ToFloat(),strs[2].ToInt(),tradeqty,sellprice,strs[4].ToInt()));
-				}
-			}
+			m_TraderPlusItems.traderPlusItems[categoryname].Insert(tpItem);
 		}
+		JsonFileLoader<MapTraderPlusItems>.JsonSaveFile(TRADERPLUS_CONFIG_DIR_SERVER+"m_AllTraderPlusItems.traderPlusItemsSingleCat.json", m_AllTraderPlusItems);
+		JsonFileLoader<MapTraderPlusItems>.JsonSaveFile(TRADERPLUS_CONFIG_DIR_SERVER+"m_TraderPlusItems.traderPlusItemsSingleCat.json", m_TraderPlusItems);
 	}
 
 	void GetTraderPlusItemsListFromAllCategory(array<string> categories)
 	{
+		#ifdef TRADERPLUSDEBUG
+		GetTraderPlusLogger().LogInfo("GetTraderPlusItemsListFromAllCategory");
+		#endif
+
 		//In some cases we don't want to clear the items, that's why we need that reset condition
-		m_TraderPlusItems.Clear();
-		// #ifdef TRADERPLUSDEBUG
-		// GetTraderPlusLogger().LogInfo("GetTraderPlusItemsListFromAllCategory: traderplusitems.count:"+m_TraderPlusItems.Count().ToString());
-		// GetTraderPlusLogger().LogInfo("GetTraderPlusItemsListFromAllCategory: TraderCategories.Count:"+m_TraderCategories.Count().ToString());
-		// #endif
+		m_TraderPlusItems.traderPlusItems.Clear();
 
-		for(int i=0; i<m_TraderCategories.Count();i++)
+		for(int k=0; k<categories.Count();k++)
 		{
-			for(int k=0; k<categories.Count();k++)
+			if(GetBankAccount() && GetBankAccount().Licences)
 			{
-				if(m_TraderCategories.Get(i).CategoryName == categories[k])
-				{
-					if(GetBankAccount() && GetBankAccount().Licences){
-<<<<<<< HEAD
-						if(categories[k].Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount().Licences.Find(categories[k]) == -1)
-=======
-						if(categories[k].Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount().Licences.Find(categories[k]) != -1)
->>>>>>> af110d2551dadb184991aa5a17ae9a08bf71cdfa
-							continue;
-					}
+				if(categories[k].Contains(GetTraderPlusConfigClient().LicenceKeyWord) && GetBankAccount().Licences.Find(categories[k]) == -1)
+					continue;
+			}
 
-					for(int j=0;j<m_TraderCategories.Get(i).Products.Count();j++)
-					{
-						string str = m_TraderCategories.Get(i).Products.Get(j);
-						TStringArray strs = new TStringArray;
-						str.Split( ",", strs );
-						float sellprice = strs[5].ToFloat();
-						if( sellprice < 1.0 && sellprice != -1.0)
-						{
-							sellprice = strs[4].ToFloat() * strs[5].ToFloat();
-						}
-						float tradeqty = strs[3].ToFloat();
-						int   maxqty   = TraderPlusHelper.GetMaxItemQuantityClient(strs[0]);
-						tradeqty = CalculateTradeQty(strs[0],tradeqty,maxqty);
-						// #ifdef TRADERPLUSDEBUG
-						// GetTraderPlusLogger().LogInfo("ItemName:"+strs[0].ToLower()+" tradeqty:"+strs[3] + " maxstock" + strs[2]);
-						// #endif
-						m_TraderPlusItems.Insert(new TraderPlusItem(categories[k],strs[0],strs[1].ToFloat(),strs[2].ToInt(),tradeqty,sellprice,strs[4].ToInt()));
-					}
-				}
+			array<ref TraderPlusItem> tpItems = new array<ref TraderPlusItem>;
+			if(!m_AllTraderPlusItems.traderPlusItems.Find(categories[k],tpItems))continue;
+			m_TraderPlusItems.traderPlusItems.Set(categories[k], new array<ref TraderPlusItem>);
+			foreach(TraderPlusItem tpItem: tpItems)
+			{
+				m_TraderPlusItems.traderPlusItems[categories[k]].Insert(tpItem);
 			}
 		}
+		JsonFileLoader<MapTraderPlusItems>.JsonSaveFile(TRADERPLUS_CONFIG_DIR_SERVER+"m_AllTraderPlusItems.traderPlusItemsAll.json", m_AllTraderPlusItems);
+		JsonFileLoader<MapTraderPlusItems>.JsonSaveFile(TRADERPLUS_CONFIG_DIR_SERVER+"m_TraderPlusItems.traderPlusItemsAll.json", m_TraderPlusItems);
 	}
 
 	float CalculateTradeQty(string classname,float tradeqty, int maxqty)
@@ -454,6 +443,63 @@ class TraderPlusClient
 		return tradeqty;
 	}
 
+	void ConvertPriceConfigToTraderItems()
+	{
+		#ifdef TRADERPLUSDEBUG
+		GetTraderPlusLogger().LogInfo("ConvertPriceConfigToTraderItems");
+		#endif
+
+		m_AllTraderPlusItems.traderPlusItems.Clear();
+		TraderPlusCategories cpyCategories = new TraderPlusCategories;
+		TraderPlusCopyMap<TraderPlusCategories>.CopyMap(m_TraderPlusCategories,cpyCategories);
+		foreach(string category, TStringArray products: cpyCategories.traderCategories)
+		{
+			if(!products || products.Count()==0)continue;
+			array<ref TraderPlusItem>tpItems = new array<ref TraderPlusItem>;
+			for(int j=0;j<products.Count();j++)
+			{
+					string str = products[j];
+					TStringArray strs = new TStringArray;
+					str.Split( ",", strs );
+					float sellprice = strs[5].ToFloat();
+					if( sellprice < 1.0 && sellprice != -1.0)
+					{
+						sellprice = strs[4].ToFloat() * strs[5].ToFloat();
+					}
+					float tradeqty = strs[3].ToFloat();
+					int   maxqty   = TraderPlusHelper.GetMaxItemQuantityClient(strs[0]);
+					tradeqty = CalculateTradeQty(strs[0],tradeqty,maxqty);
+					tpItems.Insert(new TraderPlusItem(strs[0],strs[1].ToFloat(),strs[2].ToInt(),tradeqty,sellprice,strs[4].ToInt()));
+			}
+			m_AllTraderPlusItems.traderPlusItems.Insert(category, tpItems);
+		}
+		JsonFileLoader<MapTraderPlusItems>.JsonSaveFile(TRADERPLUS_CONFIG_DIR_SERVER+"price.json", m_AllTraderPlusItems);
+	}
+
+	void ConvertServerStockToClientStock(TraderPlusStock serverStock)
+	{
+		foreach(string category, array<string>products: serverStock.TraderPlusItems)
+		{
+			if(!products || products.Count() < 1)continue;
+			m_TraderStock.Set(category, new map<string, ref StockItem>);
+			foreach(string product: products)
+			{
+				TStringArray strs = new TStringArray;
+				product.Split(" ",strs);
+				string classname = strs[0];
+				classname.ToLower();
+				if(!m_TraderStock[category][classname])
+						m_TraderStock[category].Set(classname, new StockItem);
+
+				m_TraderStock[category][classname].Health.Set(strs[2].ToInt(),strs[1].ToInt());
+				#ifdef TRADERPLUSDEBUG
+				GetTraderPlusLogger().LogInfo("add to stock:"+ classname + " " + strs[2] + " " + strs[1]);
+				#endif
+			}
+		}
+		JsonFileLoader<map<string, ref map<string, ref StockItem>>>.JsonSaveFile(TRADERPLUS_CONFIG_DIR_SERVER+"NewStock.json", m_TraderStock);
+	}
+
 	//-------------------------------------------RPC PART--------------------------------------------------------//
 	void GetStockResponseBasedOnID(CallType type, ParamsReadContext ctx, PlayerIdentity sender, Object target)
   {
@@ -464,20 +510,18 @@ class TraderPlusClient
 		 GetTraderPlusLogger().LogInfo("GetStockResponseBaseOnIDCategory");
 		 #endif
 
-     Param2<int, ref TraderPlusStock> data;
+     Param3<int, ref TraderPlusStock, string> data;
      if (!ctx.Read(data))
        return;
 
-
      //We get our stock based on the TraderID from the Trader Menu request
-     TraderPlusStock m_tempStock = data.param2;
-		 m_TraderStock.TraderPlusItems.Clear();
-		 m_TraderStock = m_tempStock;
+		 ConvertServerStockToClientStock(data.param2);
+
+		 if(data.param3!= "")
+		 		m_lastTradeCategory = data.param3;
 
 		 #ifdef TRADERPLUSDEBUG
-		 int count = m_tempStock.TraderPlusItems.Count();
-		 GetTraderPlusLogger().LogInfo("Stock count: "+count.ToString());
-		 count = m_TraderStock.TraderPlusItems.Count();
+		 int count = m_TraderStock.Count();
 		 GetTraderPlusLogger().LogInfo("Stock count: "+count.ToString());
 		 #endif
 
@@ -496,6 +540,8 @@ class TraderPlusClient
 		 }
   }
 
+
+
 	void GetPriceRequestFromCategory(CallType type, ParamsReadContext ctx, PlayerIdentity sender, Object target)
 	{
 		if (!GetGame().IsClient())
@@ -505,10 +551,11 @@ class TraderPlusClient
 		GetTraderPlusLogger().LogInfo("GetPriceRequestFromCategory");
 		#endif
 
-    Param1<ref TraderPlusCategory> data;
+    Param1<ref TraderPlusCategories> data;
     if (!ctx.Read(data))
         return;
-		m_TraderCategories.Insert(data.param1);
-		m_temppriceconfig.AddCategoryToConfigClient(data.param1);
+
+		TraderPlusCopyMap<TraderPlusCategories>.CopyMap(data.param1, m_TraderPlusCategories);
+		ConvertPriceConfigToTraderItems();
 	}
 }

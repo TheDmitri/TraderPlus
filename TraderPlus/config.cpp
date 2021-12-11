@@ -123,6 +123,19 @@ class CfgVehicles
 					 "TraderPlus\images\loot_paperRcpt_co.paa"
 			 };
 		};
+		class Receipt:ReceiptBase
+		{
+			scope=2;
+			displayName="$STR_car_receipt";
+			hiddenSelections[]=
+			 {
+					 "zbytek"
+			 };
+			 hiddenSelectionsTextures[]=
+			 {
+					 "TraderPlus\images\loot_paperRcpt_co.paa"
+			 };
+		};
 		class Wrench;
 		class TraderPlusWrench: Wrench
 		{

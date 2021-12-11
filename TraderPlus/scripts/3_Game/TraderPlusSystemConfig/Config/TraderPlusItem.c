@@ -1,6 +1,5 @@
 class TraderPlusItem
 {
-  string CategoryName;
   string ClassName;
   float  Coeff;
   int    Quantity;
@@ -9,9 +8,8 @@ class TraderPlusItem
   int    BuyPrice;
   int    SellPrice;
 
-  void TraderPlusItem(string categoryname,string name,float coeff, int maxstock,int qty, int sellprice,int buyprice, int state=0)
+  void TraderPlusItem(string name,float coeff, int maxstock,int qty, int sellprice,int buyprice, int state=0)
   {
-    CategoryName = categoryname;
     ClassName = name;
     Coeff     = coeff;
     MaxStock  = maxstock;
@@ -21,3 +19,14 @@ class TraderPlusItem
     Health    = state;
   }
 };
+
+class MapTraderPlusItems
+{
+  string DummyString="DONT_ASK_WHY_IM_HERE";
+  ref map<string, ref array<ref TraderPlusItem>>traderPlusItems;
+
+  void MapTraderPlusItems()
+  {
+    traderPlusItems = new map<string, ref array<ref TraderPlusItem>>;
+  }
+}

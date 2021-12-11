@@ -25,17 +25,14 @@ static SZSafeZoneCore GetSZSafeZoneCore() {
 	static bool SZIsAdmin(PlayerBase pl)
 	{
 		//Steam 64 UID
-		string SZUID = pl.GetIdentity().GetPlainId();
-		//GetTraderPlusLogger().LogInfo(SZUID);
+		string sZUID = pl.GetIdentity().GetPlainId();
 		int cpt= -1 + GetSZConfig().SZSteamUIDs.Count();
 		for(int i=0;i<=cpt;i++)
 		{
-			if (SZUID == GetSZConfig().SZSteamUIDs.Get(i))
+			if (sZUID == GetSZConfig().SZSteamUIDs.Get(i))
 			{
-				//GetTraderPlusLogger().LogInfo("true");
 				return true;
 			}
 		}
-		//GetTraderPlusLogger().LogInfo("false");
 		return false;
 	}

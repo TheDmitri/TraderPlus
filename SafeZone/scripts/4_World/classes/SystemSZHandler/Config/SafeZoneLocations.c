@@ -10,6 +10,7 @@ class SafeZoneLocations
   ref array<float> Y;
   ref array<float> Radius;
   ref array<int> Countdowns;
+  ref array<string> BlackListedItemInStash;
 
     void SafeZoneLocations(SafeAreaSettings safeAreaSettings)
 	  {
@@ -18,6 +19,7 @@ class SafeZoneLocations
       MsgEnterZone = safeAreaSettings.MsgEnterZone;
       MsgExitZone = safeAreaSettings.MsgExitZone;
       MsgOnLeavingZone = safeAreaSettings.MsgOnLeavingZone;
+      BlackListedItemInStash = new array<string>;
       Statut = new array<string>;
       X = new array<float>;
       Y = new array<float>;
@@ -37,6 +39,11 @@ class SafeZoneLocations
         Y.Insert(safeAreaSettings.SafeAreaLocation.Get(i).Y);
         Radius.Insert(safeAreaSettings.SafeAreaLocation.Get(i).Radius);
         Countdowns.Insert(safeAreaSettings.SafeAreaLocation.Get(i).Countdown);
+      }
+
+      foreach(string bListedItem: safeAreaSettings.BlackListedItemInStash)
+      {
+        BlackListedItemInStash.Insert(bListedItem);
       }
     }
 }

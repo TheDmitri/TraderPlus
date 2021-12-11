@@ -1,13 +1,14 @@
 class TraderPlusCore
 {
 	//ref TraderPlusOldGeneralSettings  m_oldconfig;
-
 	ref TraderPlusGeneralSettings     m_TraderPlusGeneralSettings;
 	ref TraderPlusVehiclesSettings    m_TraderPlusVehiclesSettings;
-	ref TraderPlusPriceSettings       m_TraderPlusPriceSettings;
+	ref TraderPlusPriceSettings    		m_TraderPlusPriceSettings;
 	ref TraderPlusIDsSettings					m_TraderPlusIDsSettings;
 
 	ref TraderPlusGnrlConfigClient    m_TraderPlusGnrlConfigClient;
+
+	ref TraderPlusCategories m_TraderPlusCategories;
 
   ref TraderPlusClient m_TraderPlusClient;
   ref TraderPlusServer m_TraderPlusServer;
@@ -23,12 +24,16 @@ class TraderPlusCore
 		if (GetGame().IsServer() || !GetGame().IsMultiplayer())
 		{
 			//LOADING CONFIG FILES...
-			//m_oldconfig                 = TraderPlusOldGeneralSettings.Load();
 			m_TraderPlusGeneralSettings = TraderPlusGeneralSettings.Load();
 			m_TraderPlusVehiclesSettings = TraderPlusVehiclesSettings.Load();
 			m_TraderPlusPriceSettings   = TraderPlusPriceSettings.Load();
 			m_TraderPlusIDsSettings = m_TraderPlusIDsSettings.Load();
-			//JsonFileLoader<TraderPlusConfigClient>.JsonSaveFile(TraderPlus_CONFIG_CLIENT, m_TraderPlusServerConfigClient);
+
+			m_TraderPlusCategories = new TraderPlusCategories;
+			m_TraderPlusCategories.ConvertArrayCategoryToMap();
+
+			m_TraderPlusGnrlConfigClient = new TraderPlusGnrlConfigClient;
+			m_TraderPlusGnrlConfigClient.TransformToSendableConfig(m_TraderPlusGeneralSettings,m_TraderPlusIDsSettings,m_TraderPlusVehiclesSettings);
 			//Creating server side part
 			m_TraderPlusServer = new TraderPlusServer;
 		}
@@ -51,8 +56,7 @@ class TraderPlusCore
 			{
 				//Server calls
 				//GetRPCManager().AddRPC("ModName (try to be as specific as you can)", "NameOfYourRPCFunction", function where the RPC will be called, SingeplayerExecutionType.Client (Client when you do client to server));
-				GetRPCManager().AddRPC("TraderPlus", "GetBuyRequest", m_TraderPlusServer, SingeplayerExecutionType.Client);
-				GetRPCManager().AddRPC("TraderPlus", "GetSellRequest", m_TraderPlusServer, SingeplayerExecutionType.Client);
+				GetRPCManager().AddRPC("TraderPlus", "GetTradeRequest", m_TraderPlusServer, SingeplayerExecutionType.Client);
 				GetRPCManager().AddRPC("TraderPlus", "GetStockRequestBasedOnID", m_TraderPlusServer, SingeplayerExecutionType.Client);
 			}
 			else
@@ -68,22 +72,9 @@ class TraderPlusCore
 		//Here we send gnrl config and price config to client
 		void TransfertTraderPlusConfigToClient(PlayerBase player)
 		{
-				#ifdef TRADERPLUSDEBUG
-	      GetTraderPlusLogger().LogInfo("TransfertTraderPlusConfigToClient");
-				GetTraderPlusLogger().LogInfo("Categories Count:"+m_TraderPlusPriceSettings.TraderCategories.Count().ToString());
-	      #endif
-
 				/*we create a temporary config class that we will send to client with RPC*/
-				TraderPlusGnrlConfigClient m_tempGnrlConfigClient = new TraderPlusGnrlConfigClient;
-				m_tempGnrlConfigClient.TransformToSendableConfig(m_TraderPlusGeneralSettings,m_TraderPlusIDsSettings,m_TraderPlusVehiclesSettings);
-				GetRPCManager().SendRPC("TraderPlus", "GetTraderPlusGnrlConfigClient",  new Param1<ref TraderPlusGnrlConfigClient>(m_tempGnrlConfigClient), true, player.GetIdentity());
-
-				//then we send items categories with price
-				for(int i=0;i<m_TraderPlusPriceSettings.TraderCategories.Count();i++)
-				{
-					TraderPlusCategory m_tempCategory = m_TraderPlusPriceSettings.TraderCategories.Get(i);
-					GetRPCManager().SendRPC("TraderPlus", "GetPriceRequestFromCategory",  new Param1<ref TraderPlusCategory>(m_tempCategory), true, player.GetIdentity());
-				}
+				GetRPCManager().SendRPC("TraderPlus", "GetTraderPlusGnrlConfigClient",  new Param1<ref TraderPlusGnrlConfigClient>(m_TraderPlusGnrlConfigClient), true, player.GetIdentity());
+				GetRPCManager().SendRPC("TraderPlus", "GetPriceRequestFromCategory",  new Param1<ref TraderPlusCategories>(m_TraderPlusCategories), true, player.GetIdentity());
 		}
 
 
@@ -95,8 +86,11 @@ class TraderPlusCore
 			Param1<ref TraderPlusGnrlConfigClient> data;
 	     if (!ctx.Read(data))
 	       return;
-			m_TraderPlusGnrlConfigClient = data.param1;
 
+			m_TraderPlusGnrlConfigClient = data.param1;
+			#ifdef TRADERPLUSDEBUG
+			JsonFileLoader<ref TraderPlusGnrlConfigClient>.JsonSaveFile(TRADERPLUS_CONFIG, m_TraderPlusGnrlConfigClient);
+			#endif
 			//we reset the price config before next RPC fills it
 			m_TraderPlusClient.ResetPriceConfig();
 		}

@@ -55,7 +55,7 @@ class TraderPlusVehiclesSettings
 		VehiclesParts.Get(2).AddAttachmentsToVehicle("CivSedanWheel");
 		VehiclesParts.Get(2).AddAttachmentsToVehicle("CivSedanWheel");
 		VehiclesParts.Get(2).AddAttachmentsToVehicle("CivSedanWheel");
-		JsonFileLoader<TraderPlusVehiclesSettings>.JsonSaveFile(TRADERPLUS_VEHICULE_CONFIG, this);
+		TraderPlusJsonLoader<TraderPlusVehiclesSettings>.SaveToFile(TRADERPLUS_VEHICULE_CONFIG, this);
 	}
 
 	void AddVehicleToConfig(string name)
@@ -77,7 +77,7 @@ class TraderPlusVehiclesSettings
 
 	void Save()
 	{
-		JsonFileLoader<TraderPlusVehiclesSettings>.JsonSaveFile(TRADERPLUS_VEHICULE_CONFIG, this);
+		TraderPlusJsonLoader<TraderPlusVehiclesSettings>.SaveToFile(TRADERPLUS_VEHICULE_CONFIG, this);
 	}
 
 	static ref TraderPlusVehiclesSettings Load()	{

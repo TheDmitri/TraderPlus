@@ -16,7 +16,7 @@ modded class PlayerBase extends ManBase
 		DressTrader(data.Clothes);
 
 		//Safezone function so zombies get removed if chase NPC
-		IsInsideSZ.SZStatut = true;
+		SetSafeZoneStatus(true);
 	}
 
 	override void SetActions()

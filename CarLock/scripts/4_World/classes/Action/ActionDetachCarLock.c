@@ -35,7 +35,7 @@ class  ActionDetachCarLock: ActionContinuousBase
 				return true;
 
 		CarScript ntarget = CarScript.Cast( target.GetObject() );
-		if (ntarget && (ntarget.m_CarLockOwner == player.CLSteamlowID || player.IsSZAdmin ||player.HasPassword(ntarget.m_CarLockPassword,ntarget.m_CarLockOwner)))
+		if (ntarget && (ntarget.m_CarLockOwner == player.CLSteamlowID || player.GetAdminStatus() == SZ_IS_ADMIN ||player.HasPassword(ntarget.m_CarLockPassword,ntarget.m_CarLockOwner)))
 		{
 			bool IsEmpty = true;
 			Transport transport = Transport.Cast(target.GetObject());

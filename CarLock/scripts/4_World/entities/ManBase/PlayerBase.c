@@ -1,7 +1,6 @@
 #ifndef CARLOCKDISABLE
 modded class PlayerBase extends ManBase
 {
-
 	int CLSteamlowID=-1;
 
 	ref CarLockMenu m_CarLockMenu;

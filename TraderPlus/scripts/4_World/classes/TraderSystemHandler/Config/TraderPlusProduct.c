@@ -3,6 +3,7 @@ class TraderPlusProduct
 {
   int        TraderID;
   PlayerBase Customer=NULL;
+  string     Category;
   string     ClassName;
   int        Multiplier;
   int        Quantity;
@@ -10,7 +11,7 @@ class TraderPlusProduct
   int        Health;
   int        Price;
   int        Position;
-  int        TradMode=1;
+  bool       TradMode=true;
 
   void Debug()
   {
@@ -20,7 +21,7 @@ class TraderPlusProduct
     {
       description+=" - Customer: "+Customer.GetIdentity().GetName();
     }
-    description+=" - ClassName: "+ClassName + " - Quantity: "+Quantity.ToString()+" - Multiplier: "+Multiplier.ToString()+" - MaxStock: "+MaxStock.ToString();
+    description+=" - Category: "+ Category +" - ClassName: "+ClassName + " - Quantity: "+Quantity.ToString()+" - Multiplier: "+Multiplier.ToString()+" - MaxStock: "+MaxStock.ToString();
     description+=" - Health: "+Health.ToString();
     description+=" - Price: "+Price.ToString() + " - Position: "+Position.ToString();
     if(TradMode){

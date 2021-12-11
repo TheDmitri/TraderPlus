@@ -40,7 +40,7 @@ class ActionPackVehicle: ActionContinuousBase
 
 		CarScript ntarget = CarScript.Cast( target.GetObject() );
 		#ifndef CARLOCKDISABLE
-			if (ConditionAddon(player, target, item) || ntarget && ntarget.GetInventory().GetCargo().GetItemCount() == 0 && TraderPlusHelper.IsVehicle(ntarget.GetType()) &&(GetSafeZoneStatut() || !GetTraderPlusConfigClient().IsReceiptTraderOnly) && (ntarget.m_CarLockOwner == player.CLSteamlowID || player.HasPassword(ntarget.m_CarLockPassword,ntarget.m_CarLockOwner)))
+			if (ConditionAddon(player, target, item) || ntarget && ntarget.GetInventory().GetCargo().GetItemCount() == 0 && TraderPlusHelper.IsVehicle(ntarget.GetType()) &&(player.GetSafeZoneStatus() == SZ_IN_SAFEZONE || !GetTraderPlusConfigClient().IsReceiptTraderOnly) && (ntarget.m_CarLockOwner == player.CLSteamlowID || player.HasPassword(ntarget.m_CarLockPassword,ntarget.m_CarLockOwner)))
 			{
 				bool IsEmpty = true;
 				Transport transport = Transport.Cast(target.GetObject());
@@ -57,7 +57,7 @@ class ActionPackVehicle: ActionContinuousBase
 			}
 		#else
 			#ifdef MuchCarKey
-				if (ConditionAddon(player, target, item) || ntarget && ntarget.GetInventory().GetCargo().GetItemCount() == 0 && TraderPlusHelper.IsVehicle(ntarget.GetType()) && (GetSafeZoneStatut() || !GetTraderPlusConfigClient().IsReceiptTraderOnly) && !ntarget.m_IsCKLocked)
+				if (ConditionAddon(player, target, item) || ntarget && ntarget.GetInventory().GetCargo().GetItemCount() == 0 && TraderPlusHelper.IsVehicle(ntarget.GetType()) && (player.GetSafeZoneStatus() == SZ_IN_SAFEZONE || !GetTraderPlusConfigClient().IsReceiptTraderOnly) && !ntarget.m_IsCKLocked)
 				{
 					bool IsEmpty = true;
 					Transport transport = Transport.Cast(target.GetObject());
@@ -74,7 +74,7 @@ class ActionPackVehicle: ActionContinuousBase
 				}
 			#else
 				#ifdef TRADER
-					if (ConditionAddon(player, target, item) || ntarget && ntarget.GetInventory().GetCargo().GetItemCount() == 0 && TraderPlusHelper.IsVehicle(ntarget.GetType()) && (GetSafeZoneStatut() || !GetTraderPlusConfigClient().IsReceiptTraderOnly) && !ntarget.m_Trader_Locked)
+					if (ConditionAddon(player, target, item) || ntarget && ntarget.GetInventory().GetCargo().GetItemCount() == 0 && TraderPlusHelper.IsVehicle(ntarget.GetType()) && (player.GetSafeZoneStatus() == SZ_IN_SAFEZONE || !GetTraderPlusConfigClient().IsReceiptTraderOnly) && !ntarget.m_Trader_Locked)
 					{
 						bool IsEmpty = true;
 						Transport transport = Transport.Cast(target.GetObject());
@@ -91,7 +91,7 @@ class ActionPackVehicle: ActionContinuousBase
 					}
 					#else
 					 #ifdef EXPANSIONMODVEHICLE
-						 if (ConditionAddon(player, target, item) || ntarget && ntarget.GetInventory().GetCargo().GetItemCount() == 0 && TraderPlusHelper.IsVehicle(ntarget.GetType()) && car.GetLockedState() == ExpansionVehicleLockState.READY_TO_LOCK && (GetSafeZoneStatut() || !GetTraderPlusConfigClient().IsReceiptTraderOnly))
+						 if (ConditionAddon(player, target, item) || ntarget && ntarget.GetInventory().GetCargo().GetItemCount() == 0 && TraderPlusHelper.IsVehicle(ntarget.GetType()) && car.GetLockedState() == ExpansionVehicleLockState.READY_TO_LOCK && (player.GetSafeZoneStatus() == SZ_IN_SAFEZONE || !GetTraderPlusConfigClient().IsReceiptTraderOnly))
 						 {
 							 bool IsEmpty = true;
 							 Transport transport = Transport.Cast(target.GetObject());
@@ -107,7 +107,7 @@ class ActionPackVehicle: ActionContinuousBase
 							 if (IsEmpty)return true;
 						 }
 					 #else
-						if (ConditionAddon(player, target, item) || ntarget && ntarget.GetInventory().GetCargo().GetItemCount() == 0 && TraderPlusHelper.IsVehicle(ntarget.GetType()) && (GetSafeZoneStatut() || !GetTraderPlusConfigClient().IsReceiptTraderOnly))
+						if (ConditionAddon(player, target, item) || ntarget && ntarget.GetInventory().GetCargo().GetItemCount() == 0 && TraderPlusHelper.IsVehicle(ntarget.GetType()) && (player.GetSafeZoneStatus() == SZ_IN_SAFEZONE || !GetTraderPlusConfigClient().IsReceiptTraderOnly))
 						{
 							bool IsEmpty = true;
 							Transport transport = Transport.Cast(target.GetObject());
@@ -140,41 +140,6 @@ class ActionPackVehicle: ActionContinuousBase
     if ( action_data.m_MainItem && action_data.m_MainItem.GetHierarchyRootPlayer() == action_data.m_Player )
 		{
 	      CarScript vehicle = CarScript.Cast(action_data.m_Target.GetObject());
-				/*ItemBase attachmentTemp;
-				string strName, strNameTemp;
-				TStringArray slotsCar = new TStringArray;
-				TStringArray slotsTemp = new TStringArray;
-				array<string>Attachments = new array<string>;
-				GetGame().ConfigGetTextArray("CfgVehicles " + vehicle.GetType() + " attachments", slotsCar);
-
-				int sc = GetGame().ConfigGetChildrenCount("CfgVehicles");
-				for (int j = 0; j < sc; j++)
-				{
-					GetGame().ConfigGetChildName("CfgVehicles", j, strName );
-					strNameTemp = strName; strNameTemp.ToLower();
-					if (!GetGame().IsKindOf(strNameTemp, "Inventory_Base") || strNameTemp.Contains("ruined")) continue;
-					if (GetGame().ConfigGetType("CfgVehicles " + strName + " inventorySlot") == CT_ARRAY) {
-						GetGame().ConfigGetTextArray("CfgVehicles " + strName + " inventorySlot", slotsTemp);
-					}
-					else
-					{
-						GetGame().ConfigGetText("CfgVehicles " + strName + " inventorySlot", strNameTemp);
-						slotsTemp.Insert(strNameTemp);
-					}
-
-					for (int m = 0; m < slotsTemp.Count(); m++)
-					{
-						if (slotsCar.Find(slotsTemp[m]) != -1)
-						{
-							Class.CastTo(attachmentTemp, vehicle.FindAttachmentBySlotName(slotsTemp[m]));
-							if (attachmentTemp && attachmentTemp.GetHealthLevel() != 4)
-							{
-								Attachments.Insert(attachmentTemp.GetType());
-							}
-						}
-					}
-					slotsTemp.Clear();
-				}*/
 	      string type = vehicle.GetType();
 	      bool state = TraderPlusHelper.CreateInInventoryWithState(action_data.m_Player, type,action_data.m_Target.GetObject().GetHealthLevel(),1);
 				if(!state)return;

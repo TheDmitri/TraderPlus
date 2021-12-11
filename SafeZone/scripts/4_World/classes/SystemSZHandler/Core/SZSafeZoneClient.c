@@ -7,6 +7,7 @@ class SZSafeZoneClient
   bool            kickrequest = false;
   vector          LastPlayerPos = Vector(0,10,0);
   float           DtDelay = 0.0;
+  private vector  lastPos = Vector(0,10,0);
 
 
   ref SafeZoneLocations m_SafeZoneLocations;
@@ -140,9 +141,16 @@ class SZSafeZoneClient
 				SZName=Status;
 				SZStatut=true;
         SendSafeZoneStatut(Status, true);
+        lastPos = pos;
         LastPlayerPos = m_player.GetPosition();
         NotificationSystem.AddNotificationExtended( 3, SZName, m_SafeZoneLocations.MsgEnterZone, "SafeZone/images/SafeZone.paa" );
 			}
+      else
+      {
+        if(vector.Distance(pos, lastPos) > 22)
+          GetRPCManager().SendRPC("SZSafeZone", "GetFlagStatus",  NULL, true, NULL);
+        lastPos = pos;
+      }
 		}
 		else if ( distance_squared > Math.Pow(Zone_Radius, 2) )
 		{
@@ -164,6 +172,8 @@ class SZSafeZoneClient
 
   void StartOnLeaving(int countdown)
   {
+    PlayerBase player = PlayerBase.Cast(GetGame().GetPlayer());
+    if(!player.IsAlive())return;
     OnLeaving = true;
     m_SafeZoneNotificationUI = new SafeZoneNotificationUI;
     m_SafeZoneNotificationUI.StartCountdown(countdown, m_SafeZoneLocations.MsgOnLeavingZone);
@@ -182,10 +192,8 @@ class SZSafeZoneClient
     LastPlayerPos = Vector(0,10,0);
   }
 
-	void ~SZSafeZoneClient()
-  {
-    GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(SafeZoneCheck);
-    GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(WhileInside);
+	void ~SZSafeZoneClient(){
+
   }
 
     //Only called on client

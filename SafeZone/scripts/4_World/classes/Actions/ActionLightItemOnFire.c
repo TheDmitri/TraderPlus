@@ -66,7 +66,7 @@ class ActionLightItemOnFireInSafeZone: ActionContinuousBase
 		if ( target_item && item )
 		{
 			// when igniting item on the ground with igniter in hands
-			if ( !target_item.IsIgnited() && GetSafeZoneStatut())
+			if ( !target_item.IsIgnited() && player.GetSafeZoneStatus())
 			{
 					return true;
 			}

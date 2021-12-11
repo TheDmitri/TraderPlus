@@ -1,0 +1,22 @@
+////////////////////////////////////////////////////////////////////
+//DeRap: TraderPlus\Data\money\data\money_destruct.rvmat
+//Produced from mikero's Dos Tools Dll version 8.57
+//https://mikero.bytex.digital/Downloads
+//'now' is Tue Dec 07 20:03:52 2021 : 'file' last modified on Thu Jan 01 01:00:01 1970
+////////////////////////////////////////////////////////////////////
+
+#define _ARMA_
+
+ambient[] = {0.9689016,0.9689016,0.9689016,1};
+diffuse[] = {0.9689016,0.9689016,0.9689016,1};
+forcedDiffuse[] = {0,0,0,0};
+emmisive[] = {0,0,0,1};
+specular[] = {0.053602822,0.053557932,-0.033465832,0.04};
+specularPower = 0;
+PixelShaderID = "Super";
+VertexShaderID = "Super";
+class Stage8
+{
+	texture = "dz\characters\data\generic_destruct_mc.paa";
+	uvSource = "none";
+};

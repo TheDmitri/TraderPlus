@@ -62,3 +62,22 @@ class CfgMods
 		};
 	};
 };
+class CfgVehicles
+{
+	class Container_Base;
+	class HideOutObject: Container_Base
+	{
+		scope=2;
+		displayName="HideOutObject";
+		descriptionShort="";
+		inventorySlot="Armband";
+		attachments[] = {"Armband"};
+		weight=980;
+		itemSize[]={4,3};
+		itemsCargoSize[]={10,10};
+		openable = 1;
+		canBeDigged=0;
+		isMeleeWeapon=0;
+		allowOwnedCargoManipulation=0;
+	};
+};

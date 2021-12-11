@@ -4,19 +4,8 @@ modded class DayZPlayerMeleeFightLogic_LightHeavy
 	  {
         PlayerBase playerSZClone = PlayerBase.Cast(m_DZPlayer);
 
-        if (playerSZClone)
-        {
-            if(GetGame().IsServer())
-            {
-              if (playerSZClone.IsInsideSZ.SZStatut)
-              return false;
-            }
-            else
-            {
-              if (GetSafeZoneStatut())
-              return false;
-            }
-        }
+        if (playerSZClone && playerSZClone.GetSafeZoneStatus() == SZ_IN_SAFEZONE)
+            return false;
 
         return super.HandleFightLogic(pCurrentCommandID, pInputs, pEntityInHands, pMovementState, pContinueAttack);
     }

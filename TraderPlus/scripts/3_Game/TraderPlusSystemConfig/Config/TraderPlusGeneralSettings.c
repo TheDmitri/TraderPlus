@@ -78,7 +78,7 @@ class TraderPlusGeneralSettings
 
 	void Save()
 	{
-		JsonFileLoader<TraderPlusGeneralSettings>.JsonSaveFile(TRADERPLUS_CONFIG, this);
+		TraderPlusJsonLoader<TraderPlusGeneralSettings>.SaveToFile(TRADERPLUS_CONFIG, this);
 	}
 
 	void AddTradersToConfig(int id, string classname, string name, vector pos, vector ori)
@@ -110,7 +110,7 @@ class TraderPlusGeneralSettings
 			Traders[i].Orientation[1] = Math.Round(ori[1]);
 			Traders[i].Orientation[2] = Math.Round(ori[2]);
 		}*/
-		JsonFileLoader<TraderPlusGeneralSettings>.JsonSaveFile(TRADERPLUS_CONFIG, this);
+		TraderPlusJsonLoader<TraderPlusGeneralSettings>.SaveToFile(TRADERPLUS_CONFIG, this);
 	}
 
 	static ref TraderPlusGeneralSettings Load()	{

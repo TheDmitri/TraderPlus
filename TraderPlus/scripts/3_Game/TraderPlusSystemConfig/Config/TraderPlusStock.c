@@ -1,27 +1,68 @@
+class StockItem
+{
+	ref map<int, int>Health;
+
+	void StockItem()
+	{
+		Health = new map<int, int>;
+	}
+}
 class TraderPlusStock
 {
-	ref array<string>TraderPlusItems;
+	string DummyString="DONT_ASK_WHY_IM_HERE";
+	ref map<string, ref TStringArray>TraderPlusItems;
 
 	void TraderPlusStock()
 	{
-		TraderPlusItems = new array<string>;
+		TraderPlusItems = new map<string, ref TStringArray>();
 	}
 
-	void DefaultTraderPlusStock(string path)
+	void DefaultTraderPlusStock(int id,array<string> categories)
 	{
-		JsonFileLoader<TraderPlusStock>.JsonSaveFile(path, this);
+		string categoryPath = TRADERPLUS_DB_DIR_SERVER +"ID_"+id.ToString()+"\\";
+		foreach(string category: categories)
+		{
+			string path = categoryPath + category + ".json";
+			TraderPlusCategory tpStockCategory = new TraderPlusCategory(category);
+			GetTraderPlusLogger().LogInfo("save category to path:"+path);
+			TraderPlusJsonLoader<TraderPlusCategory>.SaveToFile(path, tpStockCategory);
+		}
+	}
+
+	void LoadAllCategories(int id,array<string> categories)
+	{
+		string categoryPath = TRADERPLUS_DB_DIR_SERVER +"ID_"+id.ToString()+"\\";
+		foreach(string category: categories)
+		{
+			string path = categoryPath + category + ".json";
+			TraderPlusCategory tpStockCategory = new TraderPlusCategory;
+			TraderPlusJsonLoader<TraderPlusCategory>.LoadFromFile(path, tpStockCategory);
+			TraderPlusItems.Insert(category, tpStockCategory.Products);
+		}
+	}
+
+	static TraderPlusStock GetStockFromID(int id, TStringArray categories)
+	{
+		TraderPlusStock tpStock = new TraderPlusStock;
+		string categoryPath = TRADERPLUS_DB_DIR_SERVER +"ID_"+id.ToString()+"\\";
+		foreach(string category: categories)
+		{
+			string path = categoryPath + category + ".json";
+			TraderPlusCategory tpStockCategory = new TraderPlusCategory;
+			TraderPlusJsonLoader<TraderPlusCategory>.LoadFromFile(path, tpStockCategory);
+			tpStock.TraderPlusItems.Insert(category, tpStockCategory.Products);
+		}
+		return tpStock;
 	}
 
 	void Save(int id)
 	{
 		string Path = TRADERPLUS_STOCK_CONFIG + "_" + id.ToString() + ".json";
-		JsonFileLoader<TraderPlusStock>.JsonSaveFile(Path, this);
+		TraderPlusJsonLoader<TraderPlusStock>.SaveToFile(Path, this);
 	}
 
-	static ref TraderPlusStock Load(int id)	{
-		ref TraderPlusStock settings = new TraderPlusStock;
-
-		string Path = TRADERPLUS_STOCK_CONFIG + "_" + id.ToString() + ".json";
+	static ref TraderPlusStock Load(int id, array<string>categories = NULL)	{
+		TraderPlusStock settings = new TraderPlusStock;
 
 		if ( !FileExist( TRADERPLUS_CONFIG_ROOT_SERVER ) )
 		{
@@ -38,7 +79,8 @@ class TraderPlusStock
 			{
 				MakeDirectory( TRADERPLUS_DB_DIR_SERVER );
 			}
-		}else
+		}
+		else
 		{
 			if ( !FileExist( TRADERPLUS_DB_DIR_SERVER ) )
 			{
@@ -50,14 +92,15 @@ class TraderPlusStock
 			}
 		}
 
-		if (FileExist(Path)) {
-			Print("file exist ! loading...");
-			//JsonFileLoader<TraderPlusStock>.JsonLoadFile(Path, settings);
-			TraderPlusJsonLoader<TraderPlusStock>.LoadFromFile(Path, settings);
+		string categoryPath = TRADERPLUS_DB_DIR_SERVER +"ID_"+id.ToString()+"\\";
+		if (FileExist(categoryPath))
+		{
+				settings.LoadAllCategories(id, categories);
 		}
 		else {
 			Print("file doesn't exist ! creating...");
-			settings.DefaultTraderPlusStock(Path);
+			MakeDirectory(categoryPath);
+			settings.DefaultTraderPlusStock(id, categories);
 		}
 
 		return settings;

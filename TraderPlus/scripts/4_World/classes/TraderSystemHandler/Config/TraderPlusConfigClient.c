@@ -10,29 +10,30 @@ class TraderPlusGnrlConfigClient
 	bool   StoreOnlyToPristineState;
 	bool   EnableStockAllCategory;
 	string LicenceKeyWord;
-	ref    TStringArray Licences;
+	ref    map<int, bool>EnableStockAllCategoryForIDs;
+	ref    map<int, string>IDsCategories;
+	ref    map<int, string>CurrenciesAccepted;
+	ref    map<int, string>Licences;
 	ref 	 array<string>MoneyName;
 	ref 	 array<int>MoneyValue;
-	ref    array<string>CurrenciesAccepted;
-	ref    array<string>IDsCategories;
 	ref    array<string>VehicleNames;
 	ref    array<vector>TraderPos;
 	ref    array<string>GivenNames;
 	ref    array<string>Roles;
-	ref    array<bool>EnableStockAllCategoryForIDs;
 
   void TraderPlusGnrlConfigClient()
   {
-		Licences        = new TStringArray;
-		CurrenciesAccepted= new array<string>;
-		MoneyName 			= new array<string>;
-		MoneyValue 			= new array<int>;
-		IDsCategories 	= new array<string>;
-		VehicleNames    = new array<string>;
-		GivenNames      = new array<string>;
-		Roles           = new array<string>;
-		TraderPos       = new array<vector>;
-		EnableStockAllCategoryForIDs = new array<bool>;
+		EnableStockAllCategoryForIDs = new map<int, bool>;
+		IDsCategories 							 = new map<int, string>;
+		CurrenciesAccepted					 = new map<int, string>;
+		Licences        						 = new map<int, string>;
+		MoneyName 									 = new array<string>;
+		MoneyValue 									 = new array<int>;
+		VehicleNames   						   = new array<string>;
+		GivenNames      						 = new array<string>;
+		Roles           						 = new array<string>;
+		TraderPos       						 = new array<vector>;
+
   }
 
 	void TransformToSendableConfig(TraderPlusGeneralSettings m_gnrlconfig,TraderPlusIDsSettings m_TraderPlusIDsSettings,TraderPlusVehiclesSettings    m_TraderPlusVehiclesSettings)
@@ -63,37 +64,51 @@ class TraderPlusGnrlConfigClient
 
 		for(int j=0;j<m_TraderPlusIDsSettings.IDs.Count();j++)
 		{
+			TraderPlusIDs id = new TraderPlusIDs;
+			id = m_TraderPlusIDsSettings.IDs[j];
+			int key = m_TraderPlusIDsSettings.IDs[j].Id;
 			string data="";
-			EnableStockAllCategoryForIDs.Insert(m_TraderPlusIDsSettings.IDs[j].EnableStockAllCategoryForID);
-			if(EnableStockAllCategory && m_TraderPlusIDsSettings.IDs[j].EnableStockAllCategoryForID)
+			EnableStockAllCategoryForIDs.Set(key,id.EnableStockAllCategoryForID);
+			if(EnableStockAllCategory && id.EnableStockAllCategoryForID)
 			{
-				data="#tpm_all"+" " +",";
+				data="#tpm_all"+" ";
 			}
-			for(int k = 0;k<m_TraderPlusIDsSettings.IDs.Get(j).Categories.Count();k++)
+			for(int k = 0;k<id.Categories.Count();k++)
 			{
-				data = data + "," + m_TraderPlusIDsSettings.IDs.Get(j).Categories.Get(k);
+				data = data + "," + id.Categories.Get(k);
 			}
-			IDsCategories.Insert(data);
+			#ifdef TRADERPLUSDEBUG
+			GetTraderPlusLogger().LogInfo("key:"+ key + " data:"+data);
+			#endif
+			IDsCategories.Set(key,data);
 			string licences = "";
-			for(int j_i=0;j_i<m_TraderPlusIDsSettings.IDs.Get(j).LicencesRequired.Count();j_i++)
+			for(int j_i=0;j_i<id.LicencesRequired.Count();j_i++)
 			{
-				if(j_i==0)licences += m_TraderPlusIDsSettings.IDs.Get(j).LicencesRequired.Get(j_i);
-				else licences += ","+m_TraderPlusIDsSettings.IDs.Get(j).LicencesRequired.Get(j_i);
+				if(j_i==0)licences += id.LicencesRequired.Get(j_i);
+				else licences += ","+id.LicencesRequired.Get(j_i);
 			}
-			Licences.Insert(licences);
+			#ifdef TRADERPLUSDEBUG
+			GetTraderPlusLogger().LogInfo("key:"+ key + " data:"+licences);
+			#endif
+			Licences.Set(key,licences);
 
 			string currencies = "";
-			for(int j_k=0;j_k<m_TraderPlusIDsSettings.IDs.Get(j).CurrenciesAccepted.Count();j_k++)
+			for(int j_k=0;j_k<id.CurrenciesAccepted.Count();j_k++)
 			{
-				if(j_k==0)currencies += m_TraderPlusIDsSettings.IDs.Get(j).CurrenciesAccepted.Get(j_k);
-				else currencies += ","+m_TraderPlusIDsSettings.IDs.Get(j).CurrenciesAccepted.Get(j_k);
+				if(j_k==0)currencies += id.CurrenciesAccepted.Get(j_k);
+				else currencies += ","+id.CurrenciesAccepted.Get(j_k);
 			}
-			CurrenciesAccepted.Insert(currencies);
+			#ifdef TRADERPLUSDEBUG
+			GetTraderPlusLogger().LogInfo("key:"+ key + " data:"+currencies);
+			#endif
+			CurrenciesAccepted.Set(key,currencies);
 		}
 
 		for(int l=0;l<m_TraderPlusVehiclesSettings.VehiclesParts.Count();l++)
 		{
 			VehicleNames.Insert(m_TraderPlusVehiclesSettings.VehiclesParts.Get(l).VehicleName);
 		}
+
+		TraderPlusJsonLoader<TraderPlusGnrlConfigClient>.SaveToFile(TRADERPLUS_CONFIG_DIR_SERVER + "TransformedGeneralConfig.json", this);
 	}
 };

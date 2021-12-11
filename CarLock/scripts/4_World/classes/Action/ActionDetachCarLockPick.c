@@ -36,7 +36,7 @@ class  ActionDetachCarLockPick: ActionContinuousBase
 
 		CarScript ntarget = CarScript.Cast( target.GetObject() );
 
-		if(GetSafeZoneStatut())return false;
+		if(player.GetSafeZoneStatus() == SZ_IN_SAFEZONE)return false;
 
 		if (ntarget && ntarget.m_CarLockOwner != -1)
 		{

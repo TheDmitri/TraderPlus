@@ -23,12 +23,12 @@ modded class MissionServer extends MissionBase
 		if(!GetTraderPlusPriceConfig().EnableAutoCalculation)return;
 
 		GetTraderPlusLogger().LogInfo("RunAutoCalculation - Started !");
-		for(int i=0; i<GetTraderPlusPriceConfig().TraderCategories.Count();i++)
+		/*for(int i=0; i<GetTraderPlusPriceConfig().TraderCategories.Count();i++)
 		{
-			for(int j=0;j<GetTraderPlusPriceConfig().TraderCategories[i].Products.Count();j++)
+			for(int j=0;j<GetTraderPlusPriceConfig().TraderCategories.GetElement(i).Count();j++)
 			{
 				TStringArray token = new TStringArray;
-				string line = GetTraderPlusPriceConfig().TraderCategories[i].Products[j];
+				string line = GetTraderPlusPriceConfig().TraderCategories.GetElement(i)[j];
 				line.Split(",",token);
 				int stock = token[2].ToInt();
 				float BuyPrice           = token[4].ToInt();
@@ -70,10 +70,10 @@ modded class MissionServer extends MissionBase
 				int sellprice = SellPrice;
 				string data = token[0] + ","+ coefficient.ToString() + ","+stock.ToString()+"," + token[3] + "," + BuyPrice.ToString() + "," + sellprice.ToString();
 				if(token.Count() > 6)data += ","+token[6];
-				GetTraderPlusPriceConfig().TraderCategories[i].Products.Set(j, data);
+				GetTraderPlusPriceConfig().TraderCategories.GetElement(i).Set(j, data);
 				token.Clear();
 			}
-		}
+		}*/
 		GetTraderPlusPriceConfig().Save();
 		GetTraderPlusLogger().LogInfo("RunAutoCalculation - Ended !");
 	}
@@ -82,7 +82,7 @@ modded class MissionServer extends MissionBase
 	void ShowTraderVariables()
 	{
 		if(!GetTraderPlusConfigServer().ConvertTraderConfigToTraderPlus)return;
-		TraderPlusPriceSettings m_PriceConfig = new TraderPlusPriceSettings;
+		TraderPlusPriceSettingsOld m_PriceConfig = new TraderPlusPriceSettingsOld;
 		GetTraderPlusLogger().LogInfo("Convertion Dr.Jones config to TraderPlus Config");
 
 		TraderPlusGeneralSettings m_GeneralConfig = new TraderPlusGeneralSettings;
@@ -116,7 +116,7 @@ modded class MissionServer extends MissionBase
 
 		for(int i=0;i<m_Trader_Categorys.Count();i++)
 		{
-			m_PriceConfig.AddCategoryToConfig(m_Trader_Categorys[i]);
+			m_PriceConfig.AddCategoryToConfig(m_Trader_Categorys.Get(i));
 		}
 
 		TraderPlusIDsSettings m_IDConfig = new TraderPlusIDsSettings;

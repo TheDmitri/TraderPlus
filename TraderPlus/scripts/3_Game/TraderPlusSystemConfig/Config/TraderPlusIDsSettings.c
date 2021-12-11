@@ -7,21 +7,6 @@ class TraderPlusIDsSettings
 		IDs   = new array<ref TraderPlusIDs>;
 	}
 
-	void DefaultTraderPlusIDsSettings()
-	{
-    IDs.Insert(new TraderPlusIDs(true));
-		IDs.Get(0).AddCategoryToId("Vegetables");
-		IDs.Get(0).AddCategoryToId("Meats");
-		IDs.Insert(new TraderPlusIDs(true));
-		IDs.Get(1).AddCategoryToId("Weapons");
-		IDs.Get(1).AddCategoryToId("Ammunitions");
-		IDs.Get(1).AddCategoryToId("Magazines");
-		IDs.Insert(new TraderPlusIDs(true));
-		IDs.Get(2).AddCategoryToId("Vehicles");
-		IDs.Get(2).AddCategoryToId("Vehicle Parts");
-		JsonFileLoader<TraderPlusIDsSettings>.JsonSaveFile(TRADERPLUS_ID_CONFIG, this);
-	}
-
 	void AddID()
 	{
 		IDs.Insert(new TraderPlusIDs(false));
@@ -34,7 +19,7 @@ class TraderPlusIDsSettings
 
 	void Save()
 	{
-		JsonFileLoader<TraderPlusIDsSettings>.JsonSaveFile(TRADERPLUS_ID_CONFIG, this);
+		TraderPlusJsonLoader<TraderPlusIDsSettings>.SaveToFile(TRADERPLUS_ID_CONFIG, this);
 	}
 
 	static ref TraderPlusIDsSettings Load()	{
@@ -61,13 +46,7 @@ class TraderPlusIDsSettings
 			GetTraderPlusLogger().LogInfo("TraderPlus file exist ! loading...");
 			//JsonFileLoader<TraderPlusIDsSettings>.JsonLoadFile(TRADERPLUS_ID_CONFIG, settings);
 			TraderPlusJsonLoader<TraderPlusIDsSettings>.LoadFromFile(TRADERPLUS_ID_CONFIG, settings);
-			settings.Save();
 		}
-		else {
-			GetTraderPlusLogger().LogInfo("TraderPlus file doesn't exist ! place a config...");
-			//settings.DefaultTraderPlusIDsSettings();
-		}
-
 		return settings;
 	}
 }

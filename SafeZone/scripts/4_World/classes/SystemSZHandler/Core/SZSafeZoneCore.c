@@ -33,6 +33,7 @@ class SZSafeZoneCore
 				//Server calls
 				GetRPCManager().AddRPC("SZSafeZone", "GetSafeStatut", m_SZSafeZoneServer, SingeplayerExecutionType.Client);
         GetRPCManager().AddRPC("SZSafeZone", "GetEntitiesCleanUp", m_SZSafeZoneServer, SingeplayerExecutionType.Client);
+        GetRPCManager().AddRPC("SZSafeZone", "GetFlagStatus", m_SZSafeZoneServer, SingeplayerExecutionType.Client);
       }
 			else	{
 				//Client calls

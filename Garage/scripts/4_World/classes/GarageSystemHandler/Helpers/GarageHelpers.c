@@ -128,7 +128,7 @@ class GarageHelper
 			PlayerBase player = PlayerBase.Cast(GetGame().GetPlayer());
 			if(player)
 			{
-				if(car.m_CarLockOwner == player.CLSteamlowID || player.IsSZAdmin || player.HasPassword(car.m_CarLockPassword,car.m_CarLockOwner))
+				if(car.m_CarLockOwner == player.CLSteamlowID || player.GetAdminStatus() == SZ_IS_ADMIN || player.HasPassword(car.m_CarLockPassword,car.m_CarLockOwner))
 				{
 					return true;
 				}

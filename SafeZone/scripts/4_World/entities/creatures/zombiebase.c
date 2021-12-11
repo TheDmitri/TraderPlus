@@ -4,7 +4,7 @@ modded class ZombieBase extends DayZInfected
 	{
 
     PlayerBase m_player = PlayerBase.Cast(m_ActualTarget);
-    if(m_player && m_player.IsInsideSZ.SZStatut == true)
+    if(m_player && m_player.GetSafeZoneStatus() == SZ_IN_SAFEZONE)
     {
       //Print("IsInsideSZ_ZombyDELETED");
       this.Delete();
@@ -17,7 +17,7 @@ modded class ZombieBase extends DayZInfected
 	override bool FightAttackLogic(int pCurrentCommandID, DayZInfectedInputController pInputController, float pDt)
 	{
     PlayerBase m_player = PlayerBase.Cast(m_ActualTarget);
-    if(m_player && m_player.IsInsideSZ.SZStatut == true)
+    if(m_player && m_player.GetSafeZoneStatus() == SZ_IN_SAFEZONE)
     {
       //Print("IsInsideSZ_ZombyDELETED");
       this.Delete();

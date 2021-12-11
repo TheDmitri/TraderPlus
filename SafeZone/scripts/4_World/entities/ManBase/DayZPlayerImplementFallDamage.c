@@ -5,7 +5,7 @@ modded class DayZPlayerImplementFallDamage
 		if (GetGame().IsServer()) {
 
 			PlayerBase player = PlayerBase.Cast(m_Player);
-			if (player && player.IsInsideSZ.SZStatut) {
+			if (player && player.GetSafeZoneStatus() == SZ_IN_SAFEZONE) {
 				return;
 			}
 		}

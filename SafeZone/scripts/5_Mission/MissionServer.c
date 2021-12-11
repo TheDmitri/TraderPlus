@@ -22,7 +22,7 @@ modded class MissionServer extends MissionBase
 		GetSZSafeZoneCore().m_SZSafeZoneServer.CheckIfInsideSafeZone(player);
 		if(SZIsAdmin(player))
 		{
-			player.SetIsSZAdmin();
+			player.SetAdminStatus();
 		}
 	}
 }
